@@ -108,10 +108,10 @@ class List {
         void print() {
             Node *navigation = list_head;
             while(navigation != NULL) {
-                Node* node = (Node*) navigation->get_content();
-                cout << (int) node->get_content()  << endl; // FIXME: Need to find a way to auto cast
+                cout << (int) navigation->get_content() << " -> "; // FIXME: Need to find a way to auto cast
                 navigation = navigation->get_next();
             }
+            cout << endl;
         }
 };
 
@@ -122,11 +122,9 @@ class Graph {
     public:
         void add_vertex(void* value) {
             Node *adjacent_node = new Node;                 // Create a node to store a vertex list
-            Node *vertex_head = new Node;                   // Create a vertex
             List *vertex_list = new List;                   // Create a vertex list
 
-            vertex_head->add_content(value);                // Add a value to the vertex
-            vertex_list->add_node(vertex_head);             // Add this vertex to the vertex list
+            vertex_list->add_node((Node*) value);             // Add this vertex to the vertex list
             adjacent_node->add_content((List*)vertex_list); // Add the vertex list to the adjacent node
             adjacent_list.add_node(adjacent_node);          // Add the adjacent node to the adjacent list (with the vertex list inside)
                                                             // Resume: Adjacent_list->adjacent_node(content)->vertex_list(content)->vertex_head
@@ -156,15 +154,13 @@ class Graph {
             Node *node = (Node*) adjacent_list.search(id);
             List *vertex_list = (List*) node->get_content();
 
-            cout << (int) node->get_content() << " -> " << endl;
-
             vertex_list->print();
         }
 };
 
 int main(void) {
 
-    Node node1, node2, node3;
+    Node node1, node2, node3, node4;
     Graph g;
 
     node1.add_content((int*) 666);
@@ -175,7 +171,7 @@ int main(void) {
     g.add_vertex(&node2);
     g.add_vertex(&node3);
 
-    g.connect_vertex(0, &node2);
+    g.connect_vertex(0, &node3);
     g.connect_vertex(0, &node2);
     cout << "\nAdress\n";
     g.print();
