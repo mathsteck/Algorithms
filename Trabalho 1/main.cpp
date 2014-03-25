@@ -29,16 +29,19 @@
 #include <iostream>
 #include <typeinfo>
 #include <stdlib.h>
+#define TYPE intptr_t                                           // If you running on x64 this need to be intptr_t
 
 using namespace std;
 
 class Node {
 
+    int id;
     void *content;                                              // This content can be anything (Pointer to an list or just an integer).
     Node *next;                                                 // Points to the next node
 
     public:
         Node(void) {
+            id = 0;
             next = NULL;
             content = NULL;
         }
@@ -49,6 +52,14 @@ class Node {
 
         void add_content(void *new_content) {
             content = new_content;
+        }
+
+        void set_id(int new_id) {
+            id = new_id;
+        }
+
+        int get_id(void) {
+            return id;
         }
 
         void* get_content(void) {
@@ -101,7 +112,7 @@ class List {
         void print() {
             Node *navigation = list_head;
             while(navigation != NULL) {
-                cout << (int) navigation->get_content() << " -> ";              // FIXME: Need to find a way to auto cast the content
+                cout << navigation->get_id() << ") " << (TYPE) navigation->get_content() << " -> ";              // FIXME: Need to find a way to auto cast the content
                 navigation = navigation->get_next();
             }
             cout << endl;
@@ -111,39 +122,46 @@ class List {
 class Graph {
 
     int number_of_vertex;
-    List vertex_list;                                                           // Stores a list of pointers to all adjacent lists of this graph
+    List vertex_list;                                                       // Stores a list of pointers to all adjacent lists of this graph
+
+    void connect_vertex(int vertex_id, Node *vertex) {
+        Node *link_adjacent = (Node*) vertex_list.search(vertex_id);        // Get the link to the adjacent list
+        Node *vertex_copy = new Node;
+
+        *vertex_copy = *vertex;                                             // Copy the content of the original vertex
+        vertex_copy->add_next(NULL);
+
+        if(link_adjacent == NULL)   {
+            cout << "Vertex " << vertex_id << " doesnt exists!" << endl;
+        }
+        else {
+            List *adjacent_list = (List*) link_adjacent->get_content();     // Get the adjacent list
+
+            if(adjacent_list != NULL)
+                adjacent_list->add_node((Node*) vertex_copy);               // Add the vertex into the adjacent list
+        }
+    }
 
     public:
         Graph(void) {
             number_of_vertex = 0;
         }
                                                                                 // Resume: Vertex list -> Adjacent list -> head_of_adjacent
-        void add_vertex(void* head_of_adjacent) {
+        void add_vertex(Node* head_of_adjacent) {
             Node *link_adjacent = new Node;                                     // Create a new link to store a pointer to an adjacent list
             List *adjacent_list = new List;                                     // Create an adjacent list
 
-            adjacent_list->add_node((Node*) head_of_adjacent);                  // Add the head of the adjacent list
+            adjacent_list->add_node(head_of_adjacent);                          // Add the head of the adjacent list
             link_adjacent->add_content((List*) adjacent_list);                  // Link the vertex list with the adjacent list
             vertex_list.add_node(link_adjacent);                                // Add the pointer to an adjacent list into the vertex list
 
+            head_of_adjacent->set_id(number_of_vertex);
             number_of_vertex++;
         }
 
-        void connect_vertex(int vertex_id, Node *vertex) {
-            Node *link_adjacent = (Node*) vertex_list.search(vertex_id);        // Get the link to the adjacent list
-            Node *vertex_copy = new Node;
-
-            *vertex_copy = *vertex;                                             // Copy the content of the original vertex
-
-            if(link_adjacent == NULL)   {
-                cout << "Vertex " << vertex_id << " doesnt exists!" << endl;
-            }
-            else {
-                List *adjacent_list = (List*) link_adjacent->get_content();     // Get the adjacent list
-
-                if(adjacent_list != NULL)
-                    adjacent_list->add_node((Node*) vertex_copy);               // Add the vertex into the adjacent list
-            }
+        void connect_vertex(Node *vertex1, Node *vertex2) {
+            connect_vertex(vertex2->get_id(), vertex1);
+            connect_vertex(vertex1->get_id(), vertex2);
         }
 
         void print() {
@@ -167,16 +185,16 @@ int main(void) {
     Node node1, node2, node3, node4;
     Graph g;
 
-    node1.add_content((int*) 666);
-    node2.add_content((int*) 333);
-    node3.add_content((int*) 111);
+    node1.add_content((TYPE*) 666);
+    node2.add_content((TYPE*) 333);
+    node3.add_content((TYPE*) 111);
 
     g.add_vertex(&node1);
     g.add_vertex(&node2);
     g.add_vertex(&node3);
 
-    g.connect_vertex(0, &node3);
-    g.connect_vertex(0, &node2);
+    g.connect_vertex(&node1, &node3);
+    g.connect_vertex(&node2, &node3);
 
     cout << "\nAdjacent List\n";
     for(int i = 0; i < g.get_n_vertex(); i++)
