@@ -241,7 +241,6 @@ int main(void) {
 
         cout << vertex_id1 << " " << vertex_id2 << endl;
         g.connect_vertex(vertex_id1 - 1, vertex_id2 - 1);
-
     }
 
     cout << "\nAdjacent List\n";
