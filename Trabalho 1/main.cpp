@@ -1,7 +1,7 @@
 /*
   Authors:
-  Matheus Steck Cardoso - matheus.steck.cardoso@gmail.com
-  Rafael    - @gmail.com
+  Matheus Steck Cardoso - mathsteck@gmail.com
+  Rafael dos Santos França Rodrigues - ph.sfr@ig.com.br
 
     The MIT License (MIT)
 
@@ -29,6 +29,7 @@
 #include <iostream>
 #include <typeinfo>
 #include <stdlib.h>
+#include <fstream>
 #define TYPE intptr_t                                           // If you running on x64 this need to be intptr_t
 
 using namespace std;
@@ -37,7 +38,7 @@ class Node {
 
     int id;
     void *content;                                              // This content can be anything (Pointer to an list or just an integer).
-    Node *next;                                                 // Points to the next node
+    Node *next, *previous;
 
     public:
         Node(void) {
@@ -46,8 +47,16 @@ class Node {
             content = NULL;
         }
 
+        Node(void *new_content) {
+            content = new_content;
+        }
+
         void add_next(Node *node) {
             next = node;
+        }
+
+        void add_previous(Node *node) {
+            previous = node;
         }
 
         void add_content(void *new_content) {
@@ -69,34 +78,45 @@ class Node {
         Node* get_next() {
             return next;
         }
+
+        Node* get_previous() {
+            return previous;
+        }
 };
 
 class List {
 
-    Node *list_head;
+    Node *first, *last;
 
     public:
         List(void) {
-            list_head = NULL;
+            first = NULL;
+            last = NULL;
         }
 
-        void add_node(Node *new_node) {
-            if(list_head == NULL) {
-                list_head = new_node;                                           // Create a new head's list
+        void add(Node *new_node) {
+            if(first == NULL) {
+                first = new_node;                                               // Create a new head's list
+                last = new_node;
             }
             else {
-                Node *navigation = list_head;
+                new_node->add_previous(last);
+                last->add_next(new_node);                                       // Add the new node in the end of the list
+                last = new_node;
+            }
+        }
 
-                while(navigation->get_next()!= NULL)                            // Find the end of the list. FIXME: Store the end of the list is faster
-                    navigation = navigation->get_next();
-
-                navigation->add_next(new_node);                                 // Add the new node in the end of the list
+        void remove_first(void) {
+            if (first != NULL) {
+                Node *trash = first;
+                first = first->get_next();
+                delete(trash);
             }
         }
 
         Node* search(int id) {                                                  // The id (position in the list) of the Node
             int i;
-            Node *navigation = list_head;
+            Node *navigation = first;
 
             for(i = 0; navigation->get_next()!= NULL && i < id; i++) {          // Navigate in the list
                 navigation = navigation->get_next();
@@ -109,10 +129,18 @@ class List {
 
         }
 
+        Node* get_head(void) {
+            return first;
+        }
+
+        Node *get_tail(void) {
+            return last;
+        }
+
         void print() {
-            Node *navigation = list_head;
+            Node *navigation = first;
             while(navigation != NULL) {
-                cout << navigation->get_id() << ") " << (TYPE) navigation->get_content() << " -> ";              // FIXME: Need to find a way to auto cast the content
+                cout << (TYPE) navigation->get_content() << " -> ";              // FIXME: Need to find a way to auto cast the content
                 navigation = navigation->get_next();
             }
             cout << endl;
@@ -122,25 +150,7 @@ class List {
 class Graph {
 
     int number_of_vertex;
-    List vertex_list;                                                       // Stores a list of pointers to all adjacent lists of this graph
-
-    void connect_vertex(int vertex_id, Node *vertex) {
-        Node *link_adjacent = (Node*) vertex_list.search(vertex_id);        // Get the link to the adjacent list
-        Node *vertex_copy = new Node;
-
-        *vertex_copy = *vertex;                                             // Copy the content of the original vertex
-        vertex_copy->add_next(NULL);
-
-        if(link_adjacent == NULL)   {
-            cout << "Vertex " << vertex_id << " doesnt exists!" << endl;
-        }
-        else {
-            List *adjacent_list = (List*) link_adjacent->get_content();     // Get the adjacent list
-
-            if(adjacent_list != NULL)
-                adjacent_list->add_node((Node*) vertex_copy);               // Add the vertex into the adjacent list
-        }
-    }
+    List vertex_list;                                                           // Stores a list of pointers to all adjacent lists of this graph
 
     public:
         Graph(void) {
@@ -151,17 +161,34 @@ class Graph {
             Node *link_adjacent = new Node;                                     // Create a new link to store a pointer to an adjacent list
             List *adjacent_list = new List;                                     // Create an adjacent list
 
-            adjacent_list->add_node(head_of_adjacent);                          // Add the head of the adjacent list
+            adjacent_list->add(head_of_adjacent);                          // Add the head of the adjacent list
             link_adjacent->add_content((List*) adjacent_list);                  // Link the vertex list with the adjacent list
-            vertex_list.add_node(link_adjacent);                                // Add the pointer to an adjacent list into the vertex list
+            vertex_list.add(link_adjacent);                                // Add the pointer to an adjacent list into the vertex list
 
             head_of_adjacent->set_id(number_of_vertex);
             number_of_vertex++;
         }
 
-        void connect_vertex(Node *vertex1, Node *vertex2) {
-            connect_vertex(vertex2->get_id(), vertex1);
-            connect_vertex(vertex1->get_id(), vertex2);
+        void connect_vertex(int vertex_id1, int vertex_id2) {
+            Node *link_adjacent1 = (Node*) vertex_list.search(vertex_id1);      // Get the link to the adjacent list of the first vertex
+            Node *link_adjacent2 = (Node*) vertex_list.search(vertex_id2);      // Get the link to the adjacent list of the second vertex
+
+            List *adjacent_list1 = (List*) link_adjacent1->get_content();       // Get the adjacent list of the first vertex
+            List *adjacent_list2 = (List*) link_adjacent2->get_content();       // Get the adjacent list of the second
+
+            Node *vertex_copy1 = new Node;
+            Node *vertex_copy2 = new Node;
+
+            *vertex_copy1 = *adjacent_list1->get_head();                        // Copy the content of the original first vertex
+            *vertex_copy2 = *adjacent_list2->get_head();                        // Copy the content of the original second vertex
+            vertex_copy1->add_next(NULL);
+            vertex_copy2->add_next(NULL);
+
+
+            if(adjacent_list1 != NULL && adjacent_list2 != NULL) {
+                adjacent_list1->add((Node*) vertex_copy2);                 // Add the vertex2 into the adjacent list from vertex1
+                adjacent_list2->add((Node*) vertex_copy1);                 // Add the vertex1 into the adjacent list from vertex2
+            }
         }
 
         void print() {
@@ -182,21 +209,44 @@ class Graph {
 
 int main(void) {
 
-    Node node1, node2, node3, node4;
+    int n_vertex = 0, n_edges = 0;
+    int vertex_id1 = 0, vertex_id2 = 0;
+
+    ifstream input_file;
+    string file_path;
+
     Graph g;
 
-    node1.add_content((TYPE*) 666);
-    node2.add_content((TYPE*) 333);
-    node3.add_content((TYPE*) 111);
+    /* inputs */
+    cin >> file_path;
+    cout << file_path << endl;
+    input_file.open(file_path.c_str());
 
-    g.add_vertex(&node1);
-    g.add_vertex(&node2);
-    g.add_vertex(&node3);
+    input_file >> n_vertex;
+    input_file >> n_edges;
 
-    g.connect_vertex(&node1, &node3);
-    g.connect_vertex(&node2, &node3);
+    cout << n_vertex << endl << n_edges << endl;
+
+    for(TYPE i = 1; i <= n_vertex; i++) {                   // Create a vertex list
+        Node *node = new Node;
+        node->add_content((TYPE*) i);
+        g.add_vertex(node);
+    }
+
+    while(true) {                                           // Connect all the vertex from file
+        input_file >> vertex_id1 >> vertex_id2;
+
+        if(input_file.eof())
+            break;
+
+        cout << vertex_id1 << " " << vertex_id2 << endl;
+        g.connect_vertex(vertex_id1 - 1, vertex_id2 - 1);
+
+    }
 
     cout << "\nAdjacent List\n";
-    for(int i = 0; i < g.get_n_vertex(); i++)
-        g.print_adjacent(i);
+    for(int i = 1; i <= g.get_n_vertex(); i++)
+        g.print_adjacent(i-1);
+
+    input_file.close();
 }
