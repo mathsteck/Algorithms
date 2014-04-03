@@ -1,7 +1,6 @@
 /*
   Authors:
   Matheus Steck Cardoso - mathsteck@gmail.com
-  Rafael dos Santos França Rodrigues - ph.sfr@ig.com.br
 
     The MIT License (MIT)
 
@@ -30,20 +29,33 @@
 #include <typeinfo>
 #include <stdlib.h>
 #include <fstream>
-#define TYPE intptr_t                                           // If you running on x64 this need to be intptr_t
+
+#define TYPE int // If you running on x64 this need to be intptr_t
+#define INFINITE 666666
 
 using namespace std;
 
 class Node {
 
     int id;
-    void *content;                                              // This content can be anything (Pointer to an list or just an integer).
+    void *content; // This content can be anything (Pointer to an list or just an integer).
     Node *next, *previous;
 
     public:
+        Node(Node* copy_node) {
+            content = NULL;
+            if(copy_node != NULL) {
+                id = copy_node->get_id();
+                content = copy_node->get_content();
+            }
+            next = NULL;
+            previous = NULL;
+        }
+
         Node(void) {
             id = 0;
             next = NULL;
+            previous = NULL;
             content = NULL;
         }
 
@@ -86,24 +98,27 @@ class Node {
 
 class List {
 
+    int n_elements;
     Node *first, *last;
 
     public:
         List(void) {
+            n_elements = 0;
             first = NULL;
             last = NULL;
         }
 
         void add(Node *new_node) {
             if(first == NULL) {
-                first = new_node;                                               // Create a new head's list
+                first = new_node; // Create a new head's list
                 last = new_node;
             }
             else {
                 new_node->add_previous(last);
-                last->add_next(new_node);                                       // Add the new node in the end of the list
+                last->add_next(new_node); // Add the new node in the end of the list
                 last = new_node;
             }
+            n_elements++;
         }
 
         void remove_first(void) {
@@ -111,36 +126,69 @@ class List {
                 Node *trash = first;
                 first = first->get_next();
                 delete(trash);
+                n_elements--;
             }
         }
 
-        Node* search(int id) {                                                  // The id (position in the list) of the Node
+        Node* search(int id) { // The id (position in the list) of the Node
             int i;
             Node *navigation = first;
 
-            for(i = 0; navigation->get_next()!= NULL && i < id; i++) {          // Navigate in the list
+            for(i = 0; navigation->get_next() != NULL && i < id; i++) { // Navigate in the list
                 navigation = navigation->get_next();
             }
 
-            if(i < id)                                                          // If reaches the end of the list
+            if(i < id)  // If reaches the end of the list
                 return NULL;
 
-            return navigation;                                                  // Return a pointer to the searched Node
-
+            return navigation; // Return a pointer to the searched Node
         }
 
-        Node* get_head(void) {
+        Node* unordered_search(int id) {
+            Node *navigation = first;
+
+            while(navigation->get_next() != NULL && navigation->get_id() != id)
+                navigation = navigation->get_next();
+
+            if(navigation->get_id() != id)
+                return NULL;
+            return navigation;
+        }
+
+        Node* get_first(void) {
             return first;
         }
 
-        Node *get_tail(void) {
+        Node *get_last(void) {
             return last;
+        }
+
+        int get_n_elements() {
+            return n_elements;
+        }
+
+        int is_empty() {
+            if(first == NULL && last == NULL)
+                return true;
+            return false;
+        }
+
+        void insert_content(int id, void *new_content) {
+            Node *vertex = unordered_search(id);
+
+            if(vertex != NULL)
+                vertex->add_content(new_content);
+        }
+
+        void* get_content(int id) {
+            Node *vertex = unordered_search(id);
+            return vertex->get_content();
         }
 
         void print() {
             Node *navigation = first;
             while(navigation != NULL) {
-                cout << (TYPE) navigation->get_content() << " -> ";              // FIXME: Need to find a way to auto cast the content
+                cout << "id: " << navigation->get_id() << " "  << (TYPE) navigation->get_content() << " -> ";
                 navigation = navigation->get_next();
             }
             cout << endl;
@@ -150,44 +198,44 @@ class List {
 class Graph {
 
     int number_of_vertex;
-    List vertex_list;                                                           // Stores a list of pointers to all adjacent lists of this graph
+    List vertex_list; // Stores a list of pointers to all adjacent lists of this graph
 
     public:
         Graph(void) {
             number_of_vertex = 0;
         }
-                                                                                // Resume: Vertex list -> Adjacent list -> head_of_adjacent
+                                                   // Resume: Vertex list -> Adjacent list -> head_of_adjacent
         void add_vertex(Node* head_of_adjacent) {
-            Node *link_adjacent = new Node;                                     // Create a new link to store a pointer to an adjacent list
-            List *adjacent_list = new List;                                     // Create an adjacent list
+            Node *link_adjacent = new Node;  // Create a new link to store a pointer to an adjacent list
+            List *adjacent_list = new List;  // Create an adjacent list
 
-            adjacent_list->add(head_of_adjacent);                          // Add the head of the adjacent list
-            link_adjacent->add_content((List*) adjacent_list);                  // Link the vertex list with the adjacent list
-            vertex_list.add(link_adjacent);                                // Add the pointer to an adjacent list into the vertex list
+            adjacent_list->add(head_of_adjacent);  // Add the head of the adjacent list
+            link_adjacent->add_content((List*) adjacent_list); // Link the vertex list with the adjacent list
+            vertex_list.add(link_adjacent); // Add the pointer to an adjacent list into the vertex list
 
-            head_of_adjacent->set_id(number_of_vertex);
+            head_of_adjacent->set_id(number_of_vertex + 1);
             number_of_vertex++;
         }
 
         void connect_vertex(int vertex_id1, int vertex_id2) {
-            Node *link_adjacent1 = (Node*) vertex_list.search(vertex_id1);      // Get the link to the adjacent list of the first vertex
-            Node *link_adjacent2 = (Node*) vertex_list.search(vertex_id2);      // Get the link to the adjacent list of the second vertex
+            Node *link_adjacent1 = (Node*) vertex_list.search(vertex_id1); // Get the link to the adjacent list of the first vertex
+            Node *link_adjacent2 = (Node*) vertex_list.search(vertex_id2); // Get the link to the adjacent list of the second vertex
 
-            List *adjacent_list1 = (List*) link_adjacent1->get_content();       // Get the adjacent list of the first vertex
-            List *adjacent_list2 = (List*) link_adjacent2->get_content();       // Get the adjacent list of the second
+            List *adjacent_list1 = (List*) link_adjacent1->get_content(); // Get the adjacent list of the first vertex
+            List *adjacent_list2 = (List*) link_adjacent2->get_content(); // Get the adjacent list of the second
 
             Node *vertex_copy1 = new Node;
             Node *vertex_copy2 = new Node;
 
-            *vertex_copy1 = *adjacent_list1->get_head();                        // Copy the content of the original first vertex
-            *vertex_copy2 = *adjacent_list2->get_head();                        // Copy the content of the original second vertex
+            *vertex_copy1 = *adjacent_list1->get_first(); // Copy the content of the original first vertex
+            *vertex_copy2 = *adjacent_list2->get_first(); // Copy the content of the original second vertex
             vertex_copy1->add_next(NULL);
             vertex_copy2->add_next(NULL);
 
 
             if(adjacent_list1 != NULL && adjacent_list2 != NULL) {
-                adjacent_list1->add((Node*) vertex_copy2);                 // Add the vertex2 into the adjacent list from vertex1
-                adjacent_list2->add((Node*) vertex_copy1);                 // Add the vertex1 into the adjacent list from vertex2
+                adjacent_list1->add((Node*) vertex_copy2); // Add the vertex2 into the adjacent list from vertex1
+                adjacent_list2->add((Node*) vertex_copy1); // Add the vertex1 into the adjacent list from vertex2
             }
         }
 
@@ -205,6 +253,91 @@ class Graph {
         int get_n_vertex(void) {
             return number_of_vertex;
         }
+
+        Node* BFS(int begin_id, int id) {
+            List queue, visited, distance;
+
+            for(int i = 0; i < number_of_vertex; i++) { // Fill the distance list with INFINITE
+                Node *dist = new Node();
+                dist->set_id(i + 1);
+                dist->add_content((int*) INFINITE);
+                distance.add(dist);
+            }
+
+            Node *node = vertex_list.search(begin_id - 1);  // Get the origin vertex
+            List *adjacent = (List*) node->get_content();
+
+            Node *vertex = new Node(adjacent->get_first()); // Create a copy of it (damn pointers)
+            Node *vertex2 = new Node(adjacent->get_first());
+
+            distance.insert_content(begin_id, 0);   // Add the distance 0 to the origin
+            visited.add(vertex2);   // Add the vertex to the visited list
+            queue.add(vertex);      // Queue the vertex
+
+            while(!queue.is_empty()) {
+                Node *t = new Node(queue.get_first());
+                queue.remove_first();   // Remove the first vertex from the queue
+
+                if(t->get_id() == id) { // t is the vertex that we are looking for (but we still cant find the droids)
+                    int max = 0, best_id = 0;
+
+                    for(int i = 0; i < number_of_vertex; i++) { // Search for the greatest distance
+                        int dist = (int) distance.get_content(i + 1);
+
+                        if(dist > max && dist < INFINITE) {
+                            max = dist;
+                            best_id = i + 1;
+                        }
+                    }
+                    Node *link = (Node*) vertex_list.search(begin_id-1); // Find the origin vertex
+                    List *adj = (List*) link->get_content();
+                    Node *vertex = adj->get_first();
+
+                    if(max > (int) vertex->get_content()) // Just add the istance if it is greater
+                        vertex->add_content((int*) max);
+                    return t;
+                }
+
+                Node *node = new Node(vertex_list.search(t->get_id()-1));
+                List *adjacent = (List*) node->get_content();
+
+                for(int j = 1; j < adjacent->get_n_elements(); j++) { // Get all adjacent vertex
+                    Node *v = new Node(adjacent->search(j));
+                    Node *v2 = new Node(adjacent->search(j));
+                    Node *aux = visited.unordered_search(v->get_id());
+
+                    if(INFINITE == (int) distance.get_content(v->get_id())) {   // If the distance < INFINITE then add the new distance in the list
+                        int dist = (int) distance.get_content(t->get_id());
+                        distance.insert_content(v->get_id(), (int*) (dist + 1));
+                    }
+                    if(aux == NULL) { // If is not visited
+                        visited.add(v); // Mark as visited
+                        queue.add(v2);  // Queue this vertex
+                    }
+                }
+            }
+            return NULL;    // If not found
+        }
+
+        int best_placement(void) {
+            int min = INFINITE, id = 0;
+                for(int i = 0; i < number_of_vertex + 1; i++)
+                    for(int j = 0; j < number_of_vertex + 1; j++)
+                        BFS(j, i);  // Do a BFS to all pair of vertex in this graph
+
+            for(int i = 1; i < number_of_vertex; i++) {  // Search for the vertex with lowest eccentricity value
+                Node *link = (Node*) vertex_list.search(i);
+                List *adj = (List*) link->get_content();
+                Node *head = adj->get_first();
+                int dist = (int) head->get_content();
+
+                if(min > dist) {
+                    min = dist; // Get the distance
+                    id = i+1;   // Get the id
+                }
+            }
+            return id;  // Return the id of the vertex with the lowest eccentricity value
+        }
 };
 
 int main(void) {
@@ -219,33 +352,36 @@ int main(void) {
 
     /* inputs */
     cin >> file_path;
-    cout << file_path << endl;
     input_file.open(file_path.c_str());
 
     input_file >> n_vertex;
     input_file >> n_edges;
 
-    cout << n_vertex << endl << n_edges << endl;
 
-    for(TYPE i = 1; i <= n_vertex; i++) {                   // Create a vertex list
+    for(TYPE i = 1; i <= n_vertex; i++) { // Create a vertex list
         Node *node = new Node;
-        node->add_content((TYPE*) i);
         g.add_vertex(node);
     }
 
-    while(true) {                                           // Connect all the vertex from file
+    while(true) {  // Connect all pair of vertex from a file
         input_file >> vertex_id1 >> vertex_id2;
 
         if(input_file.eof())
             break;
 
-        cout << vertex_id1 << " " << vertex_id2 << endl;
         g.connect_vertex(vertex_id1 - 1, vertex_id2 - 1);
     }
-
-    cout << "\nAdjacent List\n";
-    for(int i = 1; i <= g.get_n_vertex(); i++)
-        g.print_adjacent(i-1);
-
     input_file.close();
+
+    cout << g.best_placement() << endl;  // Search for the vertex with the lowest eccentricity value
+
+    /* I know that I need to delete all allocated memory but because of lack of time
+     * it was not possible. Especially because the code becomes a confuse mess of pointers
+     * and the deadline was too short to create a proper code
+     * */
+
+    /*cout << "\nAdjacent List\n";
+    for(int i = 1; i <= g.get_n_vertex(); i++)
+        g.print_adjacent(i-1);*/
+
 }
