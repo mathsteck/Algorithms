@@ -254,7 +254,7 @@ class Graph {
             return number_of_vertex;
         }
 
-        Node* BFS(int begin_id, int id) {
+        Node* BFS(int begin_id, int id, int *path) {
             List queue, visited, distance;
 
             for(int i = 0; i < number_of_vertex; i++) { // Fill the distance list with INFINITE
@@ -311,6 +311,7 @@ class Graph {
                         distance.insert_content(v->get_id(), (int*) (dist + 1));
                     }
                     if(aux == NULL) { // If is not visited
+                        path[v->get_id()-1] = t->get_id();
                         visited.add(v); // Mark as visited
                         queue.add(v2);  // Queue this vertex
                     }
@@ -323,7 +324,7 @@ class Graph {
             int min = INFINITE, id = 0;
                 for(int i = 0; i < number_of_vertex + 1; i++)
                     for(int j = 0; j < number_of_vertex + 1; j++)
-                        BFS(j, i);  // Do a BFS to all pair of vertex in this graph
+                        BFS(j, i, new int[number_of_vertex]);  // Do a BFS to all pair of vertex in this graph
 
             for(int i = 1; i < number_of_vertex; i++) {  // Search for the vertex with lowest eccentricity value
                 Node *link = (Node*) vertex_list.search(i);
@@ -373,15 +374,23 @@ int main(void) {
     }
     input_file.close();
 
-    cout << g.best_placement() << endl;  // Search for the vertex with the lowest eccentricity value
+    //cout << g.best_placement() << endl;  // Search for the vertex with the lowest eccentricity value
 
     /* I know that I need to delete all allocated memory but because of lack of time
      * it was not possible. Especially because the code becomes a confuse mess of pointers
-     * and the deadline was too short to create a proper code
+     * and the deadline was too short to create a proper code.
      * */
 
     /*cout << "\nAdjacent List\n";
     for(int i = 1; i <= g.get_n_vertex(); i++)
         g.print_adjacent(i-1);*/
 
+    int path[g.get_n_vertex()];
+    for(int i = 0; i < 9; i++)
+        path[i] = -1;
+
+    g.BFS(8, 9, path);
+
+    for(int i = 0; i < 9; i++)
+        cout << path[i] << endl;
 }
