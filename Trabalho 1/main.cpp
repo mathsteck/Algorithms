@@ -195,14 +195,20 @@ class List {
         }
 };
 
+typedef struct edge {
+    int v1, v2, value;
+}Edge;
+
 class Graph {
 
-    int number_of_vertex;
+    int n_vertex, n_edges;
     List vertex_list; // Stores a list of pointers to all adjacent lists of this graph
+    List edge_list;
 
     public:
         Graph(void) {
-            number_of_vertex = 0;
+            n_vertex = 0;
+            n_edges = 0;
         }
                                                    // Resume: Vertex list -> Adjacent list -> head_of_adjacent
         void add_vertex(Node* head_of_adjacent) {
@@ -213,8 +219,8 @@ class Graph {
             link_adjacent->add_content((List*) adjacent_list); // Link the vertex list with the adjacent list
             vertex_list.add(link_adjacent); // Add the pointer to an adjacent list into the vertex list
 
-            head_of_adjacent->set_id(number_of_vertex + 1);
-            number_of_vertex++;
+            head_of_adjacent->set_id(n_vertex + 1);
+            n_vertex++;
         }
 
         void connect_vertex(int vertex_id1, int vertex_id2) {
@@ -237,12 +243,38 @@ class Graph {
                 adjacent_list1->add((Node*) vertex_copy2); // Add the vertex2 into the adjacent list from vertex1
                 adjacent_list2->add((Node*) vertex_copy1); // Add the vertex1 into the adjacent list from vertex2
             }
+
+            Edge *edge = new Edge;
+
+            edge->v1 = vertex_copy1->get_id();
+            edge->v2 = vertex_copy2->get_id();
+            edge->value = 0;
+
+            Node *node_edge = new Node();
+
+            node_edge->add_content((Edge*) edge);
+
+            edge_list.add(node_edge);
+            n_edges++;
         }
 
         void print() {
             vertex_list.print();
         }
 
+        void print_edges() {
+            for(int i = 0; i < edge_list.get_n_elements(); i++) {
+                Node *node = edge_list.search(i);
+                Edge *e = (Edge*) node->get_content();
+
+                cout << node->get_id() << ") ";
+
+                if((int) e->v1 < (int) e->v2)
+                    cout << (int) e->v1 << " " << (int) e->v2 << " " << (int) e->value << endl;
+                else
+                    cout << (int) e->v2 << " " << (int) e->v1 << " " << (int) e->value << endl;
+            }
+        }
         void print_adjacent(int id) {
             Node *node = (Node*) vertex_list.search(id);
             List *adjacent_list = (List*) node->get_content();
@@ -251,13 +283,13 @@ class Graph {
         }
 
         int get_n_vertex(void) {
-            return number_of_vertex;
+            return n_vertex;
         }
 
         Node* BFS(int begin_id, int id, int *path) {
             List queue, visited, distance;
 
-            for(int i = 0; i < number_of_vertex; i++) { // Fill the distance list with INFINITE
+            for(int i = 0; i < n_vertex; i++) { // Fill the distance list with INFINITE
                 Node *dist = new Node();
                 dist->set_id(i + 1);
                 dist->add_content((int*) INFINITE);
@@ -281,7 +313,7 @@ class Graph {
                 if(t->get_id() == id) { // t is the vertex that we are looking for (but we still cant find the droids)
                     int max = 0, best_id = 0;
 
-                    for(int i = 0; i < number_of_vertex; i++) { // Search for the greatest distance
+                    for(int i = 0; i < n_vertex; i++) { // Search for the greatest distance
                         int dist = (int) distance.get_content(i + 1);
 
                         if(dist > max && dist < INFINITE) {
@@ -322,11 +354,12 @@ class Graph {
 
         int best_placement(void) {
             int min = INFINITE, id = 0;
-                for(int i = 0; i < number_of_vertex + 1; i++)
-                    for(int j = 0; j < number_of_vertex + 1; j++)
-                        BFS(j, i, new int[number_of_vertex]);  // Do a BFS to all pair of vertex in this graph
 
-            for(int i = 1; i < number_of_vertex; i++) {  // Search for the vertex with lowest eccentricity value
+            for(int i = 0; i < n_vertex + 1; i++)
+                for(int j = 0; j < n_vertex + 1; j++)
+                    BFS(j, i, new int[n_vertex]);  // Do a BFS to all pair of vertex in this graph
+
+            for(int i = 1; i < n_vertex; i++) {  // Search for the vertex with lowest eccentricity value
                 Node *link = (Node*) vertex_list.search(i);
                 List *adj = (List*) link->get_content();
                 Node *head = adj->get_first();
@@ -338,6 +371,57 @@ class Graph {
                 }
             }
             return id;  // Return the id of the vertex with the lowest eccentricity value
+        }
+
+        void read_shortest_path(int *output, int *path, int begin, int end) {
+            int current = end - 1, i;
+
+            for(i = 0; path[current] != -1; i++) {
+                output[i] = current + 1;
+                current = path[current] - 1;
+            }
+            output[i] = begin;
+        }
+
+        void clear(int *p, int size) {
+            for (int i = 0; i < size; i++)
+                p[i] = -1;
+        }
+        void worst_edges(int n_edges) {
+            int path[n_vertex], out[n_vertex];
+
+            clear(path, n_vertex);
+            clear(out, n_vertex);
+
+            for(int i = 1; i < n_vertex + 1; i++) {
+                for(int j = 1; j < n_vertex + 1 && j != i; j++) {
+                    BFS(j, i, path);  // Do a BFS to all pair of vertex in this graph
+
+                    cout << "Searching: " << j << " " << i << endl;
+                    read_shortest_path(out, path, j, i);
+
+                    for (int k = 0; k < n_vertex; k++)
+                        cout << path[k] << " ";
+                    cout << " // ";
+                    for (int k = 0; k < n_vertex; k++)
+                        cout << out[k] << " ";
+                    cout << endl;
+                    for(int k = 0; k + 1 < n_edges && out[k + 1] != -1; k++){
+                        for(int l = 0; l < n_edges+1; l++) {
+                            Node *aux = edge_list.search(l);
+                            Edge *e = (Edge*) aux->get_content();
+
+                                cout << e->v1 << " " << e->v2 << endl;
+                            if((e->v1 == out[k] && e->v2 == out[k+1]) || (e->v2 == out[k] && e->v1 == out[k+1])) {
+                                e->value ++;
+                                break;
+                            }
+                        }
+                    }
+                    clear(path, n_vertex);
+                    clear(out, n_vertex);
+                }
+            }
         }
 };
 
@@ -381,16 +465,8 @@ int main(void) {
      * and the deadline was too short to create a proper code.
      * */
 
-    /*cout << "\nAdjacent List\n";
-    for(int i = 1; i <= g.get_n_vertex(); i++)
-        g.print_adjacent(i-1);*/
-
-    int path[g.get_n_vertex()];
-    for(int i = 0; i < 9; i++)
-        path[i] = -1;
-
-    g.BFS(8, 9, path);
-
-    for(int i = 0; i < 9; i++)
-        cout << path[i] << endl;
+    g.print_edges();
+    g.worst_edges(n_edges);
+    cout << endl;
+    g.print_edges();
 }
