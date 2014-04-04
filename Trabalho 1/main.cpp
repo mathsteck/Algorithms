@@ -1,5 +1,5 @@
 /*
-  Authors:
+  Author:
   Matheus Steck Cardoso - mathsteck@gmail.com
 
     The MIT License (MIT)
@@ -376,7 +376,7 @@ class Graph {
         void read_shortest_path(int *output, int *path, int begin, int end) {
             int current = end - 1, i;
 
-            for(i = 0; path[current] != -1; i++) {
+            for(i = 0; path[current] != -1; i++) { // Process the path to get the connected vertex in reverse order
                 output[i] = current + 1;
                 current = path[current] - 1;
             }
@@ -387,8 +387,9 @@ class Graph {
             for (int i = 0; i < size; i++)
                 p[i] = -1;
         }
-        void worst_edges(int n_edges) {
-            int path[n_vertex], out[n_vertex];
+
+        void worst_edges(Edge *worst) {
+            int path[n_vertex], out[n_vertex]; // Stores the shortest path
 
             clear(path, n_vertex);
             clear(out, n_vertex);
@@ -397,23 +398,15 @@ class Graph {
                 for(int j = 1; j < n_vertex + 1 && j != i; j++) {
                     BFS(j, i, path);  // Do a BFS to all pair of vertex in this graph
 
-                    cout << "Searching: " << j << " " << i << endl;
-                    read_shortest_path(out, path, j, i);
+                    read_shortest_path(out, path, j, i); // Get the shortest path and put the vertex in reverse order
 
-                    for (int k = 0; k < n_vertex; k++)
-                        cout << path[k] << " ";
-                    cout << " // ";
-                    for (int k = 0; k < n_vertex; k++)
-                        cout << out[k] << " ";
-                    cout << endl;
-                    for(int k = 0; k + 1 < n_edges && out[k + 1] != -1; k++){
-                        for(int l = 0; l < n_edges+1; l++) {
+                    for(int k = 0; k + 1 < n_edges && out[k + 1] != -1; k++){ // For each vertex in the shortest path
+                        for(int l = 0; l < n_edges+1; l++) {    // Check the edges list
                             Node *aux = edge_list.search(l);
-                            Edge *e = (Edge*) aux->get_content();
+                            Edge *e = (Edge*) aux->get_content(); // Get the edge
 
-                                cout << e->v1 << " " << e->v2 << endl;
                             if((e->v1 == out[k] && e->v2 == out[k+1]) || (e->v2 == out[k] && e->v1 == out[k+1])) {
-                                e->value ++;
+                                e->value ++; // If the edge exist then increment the value of it
                                 break;
                             }
                         }
@@ -422,12 +415,46 @@ class Graph {
                     clear(out, n_vertex);
                 }
             }
+
+            int max_value = 0;
+            for(int i = 0; i < n_edges; i++) {  // Find the highest value
+                Node *aux = edge_list.search(i);
+                Edge *e = (Edge*) aux->get_content();
+
+                if(max_value < (int) e->value)
+                    max_value = e->value;
+            }
+
+            int k = 0;
+            for(int j = max_value; j >= 0; j--) { // Order by max value
+                for(int i = 0; i < n_edges; i++) {
+                    Node *aux = edge_list.search(i);
+                    Edge *e = (Edge*) aux->get_content();
+
+                    int value = e->value;
+                    if(j == (int) e->value) {
+                        worst[k] = *e;
+                        k++;
+                    }
+                }
+            }
+
+            for(int i = 0; i + 1 < n_edges; i++) { // Yeah... Yeah... I know... Bubble sort...
+                Edge aux2;
+
+                if(worst[i].value <= worst[i+1].value && worst[i].v1 > worst[i+1].v1) {
+                    aux2 = worst[i];
+                    worst[i] = worst[i+1];
+                    worst[i+1] = aux2;
+                }
+            }
         }
+
 };
 
 int main(void) {
 
-    int n_vertex = 0, n_edges = 0;
+    int n_vertex = 0, n_edges = 0, n_worst_edges = 0;
     int vertex_id1 = 0, vertex_id2 = 0;
 
     ifstream input_file;
@@ -437,6 +464,7 @@ int main(void) {
 
     /* inputs */
     cin >> file_path;
+    cin >> n_worst_edges;
     input_file.open(file_path.c_str());
 
     input_file >> n_vertex;
@@ -454,19 +482,25 @@ int main(void) {
         if(input_file.eof())
             break;
 
-        g.connect_vertex(vertex_id1 - 1, vertex_id2 - 1);
+        if(vertex_id1 - 1 > vertex_id2 - 1)
+            g.connect_vertex(vertex_id2 - 1, vertex_id1 - 1);
+        else
+            g.connect_vertex(vertex_id1 - 1, vertex_id2 - 1);
     }
     input_file.close();
 
-    //cout << g.best_placement() << endl;  // Search for the vertex with the lowest eccentricity value
+    cout << g.best_placement() << endl;  // Search for the vertex with the lowest eccentricity value
+
+    Edge worst[n_edges];
+    g.worst_edges(worst);
+
+
+    for(int i = 0; i < n_worst_edges; i++)
+        cout << worst[i].v1 << " " << worst[i].v2 << endl;
 
     /* I know that I need to delete all allocated memory but because of lack of time
      * it was not possible. Especially because the code becomes a confuse mess of pointers
-     * and the deadline was too short to create a proper code.
+     * and the deadline was too short to create a proper code. I am really sorry that this code
+     * have such terrible fate...
      * */
-
-    g.print_edges();
-    g.worst_edges(n_edges);
-    cout << endl;
-    g.print_edges();
 }
