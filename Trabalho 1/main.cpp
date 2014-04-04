@@ -450,6 +450,29 @@ class Graph {
             }
         }
 
+        void get_vertex_same_value(List *id_list, int value) {
+            for(int i = 0; i < n_vertex; i++) {
+                Node *link = vertex_list.search(i);
+                List *adj = (List*) link->get_content();
+                Node *vertex = new Node(adj->get_first());
+
+                if(value == (int) vertex->get_content())
+                    id_list->add(vertex);
+            }
+        }
+
+        void* get_vertex_value(int id) {
+            Node *link = vertex_list.search(id);
+            List *adj = (List*) link->get_content();
+            Node *vertex = new Node(adj->get_first());
+
+            return vertex->get_content();
+        }
+
+        //void clear() {
+        //    vertex_list.clear();
+        //    edge_list.clear();
+        //}
 };
 
 int main(void) {
@@ -489,11 +512,22 @@ int main(void) {
     }
     input_file.close();
 
-    cout << g.best_placement() << endl;  // Search for the vertex with the lowest eccentricity value
+    /* Eccentricity */
+    int id = g.best_placement() - 1;
+    int best_eccentricity = (int) g.get_vertex_value(id);
+    List best_place;
 
+    g.get_vertex_same_value(&best_place, best_eccentricity);
+
+    for(int i = 0; best_place.search(i) != NULL; i ++) {
+        Node *aux = best_place.search(i);
+
+        cout << aux->get_id() << endl;
+    }
+
+    /* Worst Edges */
     Edge worst[n_edges];
     g.worst_edges(worst);
-
 
     for(int i = 0; i < n_worst_edges; i++)
         cout << worst[i].v1 << " " << worst[i].v2 << endl;
