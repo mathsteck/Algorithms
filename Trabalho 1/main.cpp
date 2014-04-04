@@ -193,6 +193,18 @@ class List {
             }
             cout << endl;
         }
+
+        void clear() {
+            for(int i = 0; i < n_elements; i++) {
+                Node *navigation = first;
+
+                while(navigation != NULL) {
+                    Node *aux = navigation;
+                    navigation = navigation->get_next();
+                    delete(aux);
+                }
+            }
+        }
 };
 
 typedef struct edge {
@@ -469,10 +481,15 @@ class Graph {
             return vertex->get_content();
         }
 
-        //void clear() {
-        //    vertex_list.clear();
-        //    edge_list.clear();
-        //}
+        void clear() {
+            for(int i = 0; i < n_vertex; i ++) {
+                Node *link = vertex_list.search(i);
+                List *adj = (List*) link->get_content();
+                adj->clear();
+            }
+            vertex_list.clear();
+            edge_list.clear();
+        }
 };
 
 int main(void) {
@@ -523,6 +540,7 @@ int main(void) {
         Node *aux = best_place.search(i);
 
         cout << aux->get_id() << endl;
+        delete(aux);
     }
 
     /* Worst Edges */
@@ -532,9 +550,12 @@ int main(void) {
     for(int i = 0; i < n_worst_edges; i++)
         cout << worst[i].v1 << " " << worst[i].v2 << endl;
 
-    /* I know that I need to delete all allocated memory but because of lack of time
+    g.clear();
+
+    /* I know that I need delete all allocated memory but because of lack of time
      * it was not possible. Especially because the code becomes a confuse mess of pointers
-     * and the deadline was too short to create a proper code. I am really sorry that this code
+     * and the deadline was too short to continue what I had in mind. Also... Using a void* was a mistake because
+     * I can't delete the content of a Node (I should keep track of the type). I am really sorry that this code
      * have such terrible fate...
      * */
 }
