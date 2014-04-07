@@ -207,6 +207,7 @@ class List {
         }
 };
 
+// Shortcut...
 typedef struct edge {
     int v1, v2, value;
 }Edge;
@@ -463,7 +464,7 @@ class Graph {
         }
 
         void get_vertex_same_value(List *id_list, int value) {
-            for(int i = 0; i < n_vertex; i++) {
+            for(int i = 1; i < n_vertex; i++) {
                 Node *link = vertex_list.search(i);
                 List *adj = (List*) link->get_content();
                 Node *vertex = new Node(adj->get_first());
@@ -547,8 +548,11 @@ int main(void) {
     Edge worst[n_edges];
     g.worst_edges(worst);
 
-    for(int i = 0; i < n_worst_edges; i++)
+    int value = worst[0].value;
+    for(int i = 0; value == worst[i].value || i < n_worst_edges; i++) {
+        value = worst[i].value;
         cout << worst[i].v1 << " " << worst[i].v2 << endl;
+    }
 
     g.clear();
 
