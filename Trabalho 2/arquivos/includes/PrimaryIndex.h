@@ -27,7 +27,7 @@ class PrimaryIndex {
 
 		String *getCpf() { return this->cpf; }
 		int getRRN() { return this->rrn; }
-
+		
 		void setRRN(int rrn) {
 			this->rrn = rrn;
 		}
