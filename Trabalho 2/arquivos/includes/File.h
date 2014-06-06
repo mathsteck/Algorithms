@@ -4,6 +4,7 @@
 #include "Vector.h"
 #include "Sstring.h"
 #include "PrimaryIndex.h"
+#include "SecondaryIndex.h"
 
 // classe auxiliar para gerenciar os arquivos
 
@@ -66,10 +67,10 @@ class File {
             fclose(fp);
         }
 
-        Client * getClientByRRN(int rrn) {
-            FILE *fp = fopen("cliente.dat", "rb+");
+        Client * getClientByRRN(int rrn, char *filename) {
+            FILE *fp = fopen(filename, "rb+");
 
-            int size = getFileSize("cliente.dat");
+            int size = getFileSize(filename);
 
             if (REGISTER_SIZE * rrn > size)
                 return NULL;
@@ -199,8 +200,23 @@ class File {
             int total = size/REGISTER_SIZE;
 
             for (int i = 0; i < total; i++) {
-                Client *client = getClientByRRN(i);
+                Client *client = getClientByRRN(i, (char*) "cliente.dat");
                 PrimaryIndex *pi = new PrimaryIndex(client->getCpf(), i);
+                clientIndex->add(pi);
+            }
+
+            return clientIndex;
+        }
+
+        Vector<SecondaryIndex *> *createOccupationIdx() {
+            Vector<SecondaryIndex *> *clientIndex = new Vector<SecondaryIndex *>();
+
+            int size = getFileSize("cliente.dat");
+            int total = size/REGISTER_SIZE;
+
+            for (int i = 0; i < total; i++) {
+                Client *client = getClientByRRN(i, (char*) "cliente.dat");
+                SecondaryIndex *pi = new SecondaryIndex(client->getCpf(), client->getOccupation());
                 clientIndex->add(pi);
             }
 
@@ -221,6 +237,7 @@ class File {
 
             // Status zero = arquivo nao modificado (pois estamos criando)
             char status[] = "0";
+            // Buffer que armazena ate 32 digitos (armazena o RRN em string)
             char reg[50], buffer[128];
 
             // Insere o status no começo do arquivo
@@ -228,7 +245,6 @@ class File {
             String *changed = new String(reg);
             fwrite(status, sizeof(char), 50, fp);
 
-            // Buffer que armazena ate 32 digitos (armazena o RRN em string)
             for(int i = 0; i < clientIndex->size(); i++) {
                 PrimaryIndex *pi = clientIndex->get(i);
 
@@ -242,8 +258,44 @@ class File {
                 String *str = new String(reg);
 
                 fwrite(str, sizeof(char), 50, fp);
-                fread(reg, sizeof(char), 50, fp);
             }
+
+            fclose(fp);
+        }
+
+        void setOccupationIdx(Vector<SecondaryIndex *> *occupationIndex) {
+            FILE *fp = fopen("oficio.idx", "ab+");
+
+            if(fp == NULL) {
+                printf("Erro ao abrir o arquivo!!!");
+                exit(-1);
+            }
+            if(occupationIndex == NULL) {
+                printf("Erro: indice não incializado!!!");
+                exit(-1);
+            }
+
+            // Status zero = arquivo nao modificado (pois estamos criando)
+            char status[] = "0";
+            char reg[50], buffer[128];
+
+            // Insere o status no começo do arquivo
+            strcpy(reg, status);
+            String *changed = new String(reg);
+            fwrite(status, sizeof(char), 50, fp);
+
+            for(int i = 0; i < occupationIndex->size(); i++) {
+                SecondaryIndex *pi = occupationIndex->get(i);
+
+                strcpy(reg, pi->getStr()->getString());
+                strcat(reg, ",");
+                strcat(reg, pi->getCpf()->getString());
+
+                String *str = new String(reg);
+
+                fwrite(str, sizeof(char), 50, fp);
+            }
+
             fclose(fp);
         }
 };

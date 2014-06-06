@@ -38,7 +38,7 @@ class VideoStore {
             occupationIndex = new Vector<SecondaryIndex *>();
         }
 
-        virtual ~VideoStore() {    
+        virtual ~VideoStore() {
             // Delete os elementos das listas
             for (int i = 0; i < clientList->size(); i++) {
                 Client *client = clientList->get(i);
@@ -151,12 +151,23 @@ class VideoStore {
             delete clientList;
 
             clientList = new Vector<Client *>();
+            // Gera o indice de clientes
             clientIndex = file->createClientIdx();
             this->heapsort(clientIndex, clientIndex->size());
-
-            // FIXME: ver se aqui é o lugar certo pra chamar
             file->setClientIdx(clientIndex);
+
+            // Gera o indice de ocupação
+            occupationIndex = file->createOccupationIdx();
+            this->heapsort(occupationIndex, occupationIndex->size());
+            file->setOccupationIdx(occupationIndex);
+
             delete file;
+
+            /* imprimir
+            for (int i = 0; i < occupationIndex->size(); i++) {
+                SecondaryIndex *pi = occupationIndex->get(i);
+                printf("%s %s\n", pi->getCpf()->getString(), pi->getStr()->getString());
+            }*/
         }
 
         // TODO: realizar as mesmas operações do insert TXT!!!
@@ -167,7 +178,6 @@ class VideoStore {
         }
 
         void remove() {
-
         }
 
         void search() {
@@ -181,7 +191,7 @@ class VideoStore {
 
             if (clientIndex->size() > 0 && strlen(cpf) == 11) {
                 pi = binary(clientIndex, 0, clientIndex->size(), cpf);
-                client = file->getClientByRRN(pi->getRRN());
+                client = file->getClientByRRN(pi->getRRN(), (char*) "cliente.dat");
                 if (client != NULL)
                     printf("Nome: %s\n", client->getName()->getString());
                 else
@@ -217,6 +227,28 @@ class VideoStore {
             }
         }
 
+        void maxheapify(Vector<SecondaryIndex *> *vector, int position, int length) {
+            int largest_id = position;
+            int right_id = RIGHT_SON(position);
+            int left_id = LEFT_SON(position);
+
+            // descobrindo a posicao do maior elemento
+            if (right_id < length && 
+                strcmp(vector->get(right_id)->getStr()->getString(), vector->get(largest_id)->getStr()->getString()) > 0)
+                largest_id = right_id;
+
+            if (left_id < length &&    
+                strcmp(vector->get(left_id)->getStr()->getString(), vector->get(largest_id)->getStr()->getString()) > 0)
+                largest_id = left_id;
+
+            // troca de posicao (position, largest_id)
+            if (largest_id != position) {
+                // realmente o maior naum eh o pai
+                vector->swap(position, largest_id);
+                maxheapify(vector, largest_id, length);
+            }
+        }
+
         void buildMaxheap(Vector<PrimaryIndex *> *vector, int length) {
             int elements = length / 2 - 1;
 
@@ -226,7 +258,31 @@ class VideoStore {
             }
         }
 
+        void buildMaxheap(Vector<SecondaryIndex *> *vector, int length) {
+            int elements = length / 2 - 1;
+
+            while (elements >= 0) {
+                maxheapify(vector, elements, length);
+                elements--;
+            }
+        }
+
+
         void heapsort(Vector<PrimaryIndex *> *vector, int length) {
+            int i;
+
+            // construindo o max heap
+            buildMaxheap(vector, length);
+
+            for (i = 1; i < length; i++) {
+                vector->swap(0, length-i);
+
+                // garantindo que o max heap eh valido!
+                maxheapify(vector, 0, length-i);
+            }
+        }
+
+        void heapsort(Vector<SecondaryIndex *> *vector, int length) {
             int i;
 
             // construindo o max heap
@@ -244,6 +300,21 @@ class VideoStore {
             int central = start + ((end - start + 1) / 2);
 
             int cmp = strcmp(key, vector->get(central)->getCpf()->getString());
+
+            if (cmp == 0) return vector->get(central);
+            if (start >= end) return NULL;
+
+            if (cmp < 0) {
+                return binary(vector, start, central-1, key);
+            } else if (cmp > 0) {
+                return binary(vector, central+1, end, key);
+            }
+        }
+
+        SecondaryIndex * binary(Vector<SecondaryIndex *> *vector, int start, int end, char *key) {
+            int central = start + ((end - start + 1) / 2);
+
+            int cmp = strcmp(key, vector->get(central)->getStr()->getString());
 
             if (cmp == 0) return vector->get(central);
             if (start >= end) return NULL;
