@@ -219,13 +219,22 @@ class File {
                 exit(-1);
             }
 
-            // Buffer que armazena ate 32 digitos (armazena o RRN em string)
+            // Status zero = arquivo nao modificado (pois estamos criando)
+            char status[] = "0";
             char reg[50], buffer[128];
 
+            // Insere o status no começo do arquivo
+            strcpy(reg, status);
+            String *changed = new String(reg);
+            fwrite(status, sizeof(char), 50, fp);
+
+            // Buffer que armazena ate 32 digitos (armazena o RRN em string)
             for(int i = 0; i < clientIndex->size(); i++) {
                 PrimaryIndex *pi = clientIndex->get(i);
+
                 // Converte o inteiro para uma string
                 sprintf(buffer, "%d", pi->getRRN());
+
                 strcpy(reg, pi->getCpf()->getString());
                 strcat(reg, ",");
                 strcat(reg, buffer);
@@ -233,6 +242,7 @@ class File {
                 String *str = new String(reg);
 
                 fwrite(str, sizeof(char), 50, fp);
+                fread(reg, sizeof(char), 50, fp);
             }
             fclose(fp);
         }

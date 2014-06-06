@@ -23,10 +23,10 @@
 class VideoStore {
 
     private:
-        Vector<Client *> *clientList;        				// vetor com objetos de clientes
-        Vector<PrimaryIndex *> *clientIndex;        		// vetor contendo o indice de clientes
-        Vector<SecondaryIndex *> *genreIndex;        		// vetor contendo o indice de generos
-        Vector<SecondaryIndex *> *occupationIndex;        	// vetor contendo o indice de oficios
+        Vector<Client *> *clientList;                        // vetor com objetos de clientes
+        Vector<PrimaryIndex *> *clientIndex;                // vetor contendo o indice de clientes
+        Vector<SecondaryIndex *> *genreIndex;                // vetor contendo o indice de generos
+        Vector<SecondaryIndex *> *occupationIndex;            // vetor contendo o indice de oficios
 
     public:
 
@@ -85,16 +85,16 @@ class VideoStore {
                 printf("\n\n");
 
                 switch(option) {
-                	case READFILE: 
-                		this->insertClientTxt();
-                	break;
-                	case INSERT: 
-                		this->insertClientTerminal(); 
-                	break;			
-                	//case: REMOVE: break;
-                	case SEARCH: 
-                		this->search();
-                	break;
+                    case READFILE:
+                        this->insertClientTxt();
+                    break;
+                    case INSERT:
+                        this->insertClientTerminal(); 
+                    break;
+                    //case: REMOVE: break;
+                    case SEARCH:
+                        this->search();
+                    break;
                 }
 
             } while (option != EXIT);
@@ -123,14 +123,14 @@ class VideoStore {
 
                 aux = temp;
                 for (i = j = 0; i < size; i++, j++) {
-                	reg[j] = temp[i];
-                	if (temp[i] == '\n') {
-                		reg[j] = '\0';
-                		j = -1;
-                		Client *client = new Client();
-                		client->set(reg, 1);
-                		clientList->add(client);
-                	}
+                    reg[j] = temp[i];
+                    if (temp[i] == '\n') {
+                        reg[j] = '\0';
+                        j = -1;
+                        Client *client = new Client();
+                        client->set(reg, 1);
+                        clientList->add(client);
+                    }
                 }
 
                 fclose(arq);
@@ -159,7 +159,7 @@ class VideoStore {
             delete file;
         }
 
-        // TODO
+        // TODO: realizar as mesmas operações do insert TXT!!!
         void insertClientTerminal() {
             Client *client = new Client();
             client->readTerminal();
@@ -183,9 +183,9 @@ class VideoStore {
                 pi = binary(clientIndex, 0, clientIndex->size(), cpf);
                 client = file->getClientByRRN(pi->getRRN());
                 if (client != NULL)
-                	printf("Nome: %s\n", client->getName()->getString());
+                    printf("Nome: %s\n", client->getName()->getString());
                 else
-                	printf("Nao encontrado...\n\n");
+                    printf("Nao encontrado...\n\n");
             } else {
                 printf("Erro ao buscar!\n\n");
             }
