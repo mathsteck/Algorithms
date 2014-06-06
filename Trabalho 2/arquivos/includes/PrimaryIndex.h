@@ -1,7 +1,8 @@
-#ifndef _CLIENT_IDX_H_
-#define _CLIENT_IDX_H_
+#ifndef _PRIMARY_IDX_H_
+#define _PRIMARY_IDX_H_
 
 #include "Sstring.h"
+#include "Vector.h"
 
 class PrimaryIndex {
 	private:
@@ -42,6 +43,7 @@ class PrimaryIndex {
 				delete this->cpf;
 			this->cpf = new String(cpf);
 		}
+
 };
 
 #endif

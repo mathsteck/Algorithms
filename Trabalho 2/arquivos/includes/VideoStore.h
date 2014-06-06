@@ -15,8 +15,10 @@
 #define INSERT 2
 #define REMOVE 3
 #define SEARCH 4
-#define REMOVE_ARQ 5
-#define EXIT 6
+#define EXIT 5
+
+#define RIGHT_SON(position) (position+1)*2
+#define LEFT_SON(position) (position+1)*2-1
 
 class VideoStore {
 
@@ -75,8 +77,7 @@ class VideoStore {
 				printf("\t2. Inserir cliente pelo terminal\n");
 				printf("\t3. Remover cliente\n");
 				printf("\t4. Buscar cliente\n");
-				printf("\t5. Remover arquivo\n");
-				printf("\t6. Sair\n");
+				printf("\t5. Sair\n");
 
 				printf("Digite: ");
 				scanf("%d", &option);
@@ -85,16 +86,15 @@ class VideoStore {
 
 				switch(option) {
 					case READFILE: 
-						insertClientTxt();
+						this->insertClientTxt();
 					break;
 					case INSERT: 
-						insertClientTerminal(); 
+						this->insertClientTerminal(); 
 					break;			
-					case REMOVE_ARQ:
-						removerArq();
-					break;
 					//case: REMOVE: break;
-					//case SEARCH: break;
+					case SEARCH: 
+						this->search();
+					break;
 				}
 
 			} while (option != EXIT);
@@ -140,9 +140,9 @@ class VideoStore {
 			}
 
 			File *file = new File();
-			file->setCliente(clientList);
-			file->setGenero(clientList);
-			file->setClientesGenero(clientList);
+			file->setClient(clientList);
+			file->setGenre(clientList);
+			file->setClientsGenre(clientList);
 			// nessa etapa, nao precisa mais do vetor de clientes pois temos todas as informacoes no dat
 			for (int i = 0; i < clientList->size(); i++) {
 				Client *client = clientList->get(i);
@@ -152,88 +152,110 @@ class VideoStore {
 
 			clientList = new Vector<Client *>();
 			clientIndex = file->createClientIdx();
+			this->heapsort(clientIndex, clientIndex->size());
+			/* imprimir
+			for (int i = 0; i < clientIndex->size(); i++) {
+				PrimaryIndex *pi = clientIndex->get(i);
+				printf("%s %d\n", pi->getCpf()->getString(), pi->getRRN());
+			}*/
 			delete file;
 		}
 
+		// TODO
 		void insertClientTerminal() {
 			Client *client = new Client();
 			client->readTerminal();
 			clientList->add(client);
+		}
+
+		void remove() {
+
+		}
+
+		void search() {
+			char cpf[30];
 			File *file = new File();
-			file->setCliente(clientList);
+			Client *client;
+			PrimaryIndex *pi;
+
+			printf("Digite cpf a ser buscado: ");
+			scanf("%s", cpf);
+
+			if (clientIndex->size() > 0 && strlen(cpf) == 11) {
+				pi = binary(clientIndex, 0, clientIndex->size(), cpf);
+				client = file->getClientByRRN(pi->getRRN());
+				if (client != NULL)
+					printf("Nome: %s\n", client->getName()->getString());
+				else
+					printf("Nao encontrado...\n\n");
+			} else {
+				printf("Erro ao buscar!\n\n");
+			}
+
 			delete file;
 		}
 
-		void removeMenu() {
+		/* HEAPSORT E BINARY SEARCH P/ A PRIMARY INDEX */
 
+		void maxheapify(Vector<PrimaryIndex *> *vector, int position, int length) {
+			int largest_id = position;
+			int right_id = RIGHT_SON(position);
+			int left_id = LEFT_SON(position);
+
+			// descobrindo a posicao do maior elemento
+			if (right_id < length && 
+				strcmp(vector->get(right_id)->getCpf()->getString(), vector->get(largest_id)->getCpf()->getString()) > 0)
+			    largest_id = right_id;
+
+			if (left_id < length &&	
+				strcmp(vector->get(left_id)->getCpf()->getString(), vector->get(largest_id)->getCpf()->getString()) > 0)
+			    largest_id = left_id;
+
+			// troca de posicao (position, largest_id)
+			if (largest_id != position) {
+				// realmente o maior naum eh o pai
+				vector->swap(position, largest_id);
+				maxheapify(vector, largest_id, length);
+			}
 		}
 
-		void searchMenu() {
+		void buildMaxheap(Vector<PrimaryIndex *> *vector, int length) {
+			int elements = length / 2 - 1;
 
+			while (elements >= 0) {
+				maxheapify(vector, elements, length);
+				elements--;
+			}
 		}
 
+		void heapsort(Vector<PrimaryIndex *> *vector, int length) {
+			int i;
 
-		void removerArq() {
-    		
-    		FILE *arq;
-    		int resp;
-    		char resp2;
-    		char filename[100];
+			// construindo o max heap
+			buildMaxheap(vector, length);
 
-    		printf("\nEscolha o arquivo que deseja excluir: \n");
-    		printf("\t1. cliente.dat\n");
-    		printf("\t2. genero.dat\n");
-			printf("\t3. clientes_generos.dat\n");
-			printf("\t4. cliente.idx\n");
-			printf("\t5. genero.idx\n");
-			printf("\t6. oficio.idx\n");
-			scanf("%d", &resp);
+			for (i = 1; i < length; i++) {
+				vector->swap(0, length-i);
 
-    		switch(resp){
-				case 1:
-					strcpy(filename, "cliente.dat");
-				break;
-				case 2:
-					strcpy(filename, "genero.dat");
-				break;
-				case 3:
-					strcpy(filename, "clientes_generos.dat");
-				break;
-				case 4:
-					strcpy(filename, "cliente.idx");
-				break;
-				case 5:
-					strcpy(filename, "genero.idx");
-				break;
-				case 6:
-					strcpy(filename, "oficio.idx");
-				break;
-				default:
-					printf("\nNumero nao existe!\n");
-				break;
-    		}
-			
-
-		    if(arq == NULL){
-		        printf("Nao existe arquivo para remover!!\n");
-		        exit(1);
-		    }
-		    else{
-		        printf("\nDeseja realmente deletar o arquivo? (S/N)\n");
-		        scanf("%s", &resp2);
-		        if(resp2 == 'S' || resp2 == 's'){
-		            remove(filename);
-		        }
-		        else if(resp2 == 'N' || resp2 == 'n'){
-		            return;
-		        }
-		        else{
-		            printf("\nResposta incorreta!\n");
-		            return;
-		        }
-		    }
+				// garantindo que o max heap eh valido!
+				maxheapify(vector, 0, length-i);
+			}
 		}
 
+		PrimaryIndex * binary(Vector<PrimaryIndex *> *vector, int start, int end, char *key) {
+			int central = start + ((end - start + 1) / 2);
+
+			int cmp = strcmp(key, vector->get(central)->getCpf()->getString());
+
+			if (cmp == 0) return vector->get(central);
+			if (start >= end) return NULL;
+
+			if (cmp < 0) {
+				return binary(vector, start, central-1, key);
+			} else if (cmp > 0) {
+				return binary(vector, central+1, end, key);
+			}
+		}
 };
 
 #endif

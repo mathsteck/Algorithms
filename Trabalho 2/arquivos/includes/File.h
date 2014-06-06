@@ -9,12 +9,8 @@
 
 class File {
 
-	private:
-		String *filename;
-
 	public:
 		File() {
-			this->filename = NULL;
 		}
 
 		virtual ~File() {
@@ -22,7 +18,6 @@ class File {
 		}
 
 		// metodo auxiliar
-
 		int getFileSize(char *filename) {
 			FILE *fp = fopen(filename, "rb");
 
@@ -37,6 +32,7 @@ class File {
 			return size;
 		}
 
+		// sobrecarga de metodo
 		int getFileSize(const char *filename) {
 			FILE *fp = fopen(filename, "rb");
 
@@ -51,29 +47,27 @@ class File {
 			return size;
 		}
 
-		void setCliente(Vector<Client *> *clientes){
-			FILE *arq;
+		void setClient(Vector<Client *> *clientes){
+			FILE *fp;
 
-			arq = fopen("cliente.dat", "ab+");
+			fp = fopen("cliente.dat", "ab+");
 			int correct[7];
 
-			if(arq == NULL){
-        		printf("Nao existe arquivo!!\n");
-        		exit(1);
-    		}
+			if(fp == NULL)
+				fp = fopen("cliente.dat", "wb+");
 
 			for(int i = 0; i < clientes->size(); i++) {
 				Client *client;
 				client = clientes->get(i);
 
-				fwrite(client->getClientDat()->getString(), sizeof(char), REGISTER_SIZE, arq);
+				fwrite(client->getClientDat()->getString(), sizeof(char), REGISTER_SIZE, fp);
 			}
 
-			fclose(arq);
+			fclose(fp);
 		}
 
 		Client * getClientByRRN(int rrn) {
-			FILE *arq = fopen("cliente.dat", "rb+");
+			FILE *fp = fopen("cliente.dat", "rb+");
 
 			int size = getFileSize("cliente.dat");
 
@@ -82,122 +76,120 @@ class File {
 
 			char reg[REGISTER_SIZE];
 
-			fseek(arq, rrn*REGISTER_SIZE, SEEK_SET);
-			fread(reg, sizeof(char), REGISTER_SIZE, arq);
+			fseek(fp, rrn*REGISTER_SIZE, SEEK_SET);
+			fread(reg, sizeof(char), REGISTER_SIZE, fp);
 			Client *client = new Client();
 			client->set(reg, 2);
-			fclose(arq);
+			fclose(fp);
 
 			return client;
 		}
 
-		void setGenero(Vector<Client *> *clientes) {
-			FILE *arq;
+		void setGenre(Vector<Client *> *clientes) {
+			FILE *fp;
 			
-			arq = fopen("genero.dat", "rb+");
+			fp = fopen("genero.dat", "rb+");
 			int correct, result;
 	
-			if(arq == NULL) {
-        		arq = fopen("genero.dat", "wb+");
+			if(fp == NULL) {
+        		fp = fopen("genero.dat", "wb+");
     		}
 
 			for(int i = 0; i < clientes->size(); i++) {
 				Client *client = clientes->get(i);
-				verificaGenero(client->getPreferredGenresList());
+				genreVerify(client->getPreferredGenresList());
 			}
 
-			fclose(arq);
+			fclose(fp);
 		}
 
-		void verificaGenero(Vector<String *> *generos) {
-			FILE *arq;
+		void genreVerify(Vector<String *> *generos) {
+			FILE *fp;
 			int key, size, aux, cmp;
-			char genero_arq[30];
+			char genero_fp[30];
 
-			arq = fopen ("genero.dat", "rb+");
+			fp = fopen ("genero.dat", "rb+");
 
-			if(arq == NULL){
-        		printf("Nao existe arquivo!!\n");
-        		exit(1);
-    		}
+			if(fp == NULL)
+				fp = fopen ("genero.dat", "wb+");
 
-			fseek(arq, 0, SEEK_END);
+			fseek(fp, 0, SEEK_END);
 			size = getFileSize("genero.dat");
 
 			if (size > 0) {
-				fseek(arq, -sizeof(int)+sizeof(char)*30, SEEK_END);
-				fread(&key, sizeof(int), 1, arq);
+				fseek(fp, -sizeof(int)+sizeof(char)*30, SEEK_END);
+				fread(&key, sizeof(int), 1, fp);
 			} else {
 				key = 0;
 			}
 
-			fseek(arq, 0, SEEK_SET);
+			fseek(fp, 0, SEEK_SET);
 
 			for(int i = 0; i < generos->size(); i++) {
 				String *genero = generos->get(i);
 				cmp = 1;
 				if (size > 0) {
-					fseek(arq, 0, SEEK_SET);
-					while(!feof(arq)) {
-						fread(&aux, sizeof(int), 1, arq);
-						fread(&genero_arq, sizeof(char), 30, arq);
-						if (!feof(arq)) {
-							cmp = strcmp(genero->getString(), genero_arq);
+					fseek(fp, 0, SEEK_SET);
+					while(!feof(fp)) {
+						fread(&aux, sizeof(int), 1, fp);
+						fread(&genero_fp, sizeof(char), 30, fp);
+						if (!feof(fp)) {
+							cmp = strcmp(genero->getString(), genero_fp);
 							if (!cmp)
 								break;
 	            		}
 					}
 				}
 				if (cmp) {
-					fwrite(&key, sizeof(int), 1, arq);
-					fwrite(genero->getString(), sizeof(char), 30, arq);
+					fwrite(&key, sizeof(int), 1, fp);
+					fwrite(genero->getString(), sizeof(char), 30, fp);
 					//printf("%d %s\n", key, genero->getString());
 					key++;
 				}
 			}
-			fclose(arq);
+			fclose(fp);
 		}
 
-		void setClientesGenero(Vector<Client *> *clientes) {
+		void setClientsGenre(Vector<Client *> *clientes) {
 			for(int i = 0; i < clientes->size(); i++) {
 				Client *client = clientes->get(i);
-				insereClienteGenero(client->getPreferredGenresList(), client->getCpf());
+				insertClientGenre(client->getPreferredGenresList(), client->getCpf());
 			}
 		}
 
-		void insereClienteGenero(Vector<String *> *generos, String *cpf) {
-			FILE *arq, *arq2;
+		void insertClientGenre(Vector<String *> *generos, String *cpf) {
+			FILE *fp, *fp2;
 			int key, aux, cmp;
-			char genero_arq[30];
+			char genero_fp[30];
 
-			arq = fopen("genero.dat", "rb+");	
-			if(arq == NULL)
-        		arq = fopen("genero.dat", "wb+");
+			fp = fopen("genero.dat", "rb+");	
+			if(fp == NULL)
+        		fp = fopen("genero.dat", "wb+");
 			
-			arq2 = fopen("clientes_generos.dat", "rb+");	
-			if(arq2 == NULL)
-        		arq2 = fopen("clientes_generos.dat", "wb+");
+			fp2 = fopen("clientes_generos.dat", "rb+");	
+			if(fp2 == NULL)
+        		fp2 = fopen("clientes_generos.dat", "wb+");
 
 			for(int i = 0; i < generos->size(); i++) {
 				String *genero = generos->get(i);
 				cmp = 1;
-				fseek(arq, 0, SEEK_SET);
-				while(!feof(arq)) {
-					fread(&key, sizeof(int), 1, arq);
-					fread(&genero_arq, sizeof(char), 30, arq);
-					if (!feof(arq)) {
-						cmp = strcmp(genero->getString(), genero_arq);
+				fseek(fp, 0, SEEK_SET);
+				while(!feof(fp)) {
+					fread(&key, sizeof(int), 1, fp);
+					fread(&genero_fp, sizeof(char), 30, fp);
+					if (!feof(fp)) {
+						cmp = strcmp(genero->getString(), genero_fp);
 						if (!cmp) {
 							//printf("%s %d\n", cpf->getString(), key);
-							fwrite(cpf->getString(), sizeof(char), cpf->size(), arq2);
-							fwrite(&key, sizeof(int), 1, arq2);
+							fwrite(cpf->getString(), sizeof(char), cpf->size(), fp2);
+							fwrite(&key, sizeof(int), 1, fp2);
 							break;
 						}
             		}
 				}
 			}
-			fclose(arq);
-			fclose(arq2);
+			fclose(fp);
+			fclose(fp2);
 		}
 
 		Vector<PrimaryIndex *> *createClientIdx() {
@@ -208,7 +200,6 @@ class File {
 
 			for (int i = 0; i < total; i++) {
 				Client *client = getClientByRRN(i);
-				//printf("cpf: %s rrn: %d\n", client->getCpf()->getString(), i);
 				PrimaryIndex *pi = new PrimaryIndex(client->getCpf(), i);
 				clientIndex->add(pi);
 			}

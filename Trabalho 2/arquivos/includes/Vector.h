@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <PrimaryIndex.h>
 
 // Classe auxiliar Vector
 
@@ -29,6 +30,12 @@ class Vector {
 		void add(T elem) {
 			this->vector = (T *) realloc(this->vector, sizeof(T) * (this->counter + 1));
 			this->vector[this->counter++] = elem;
+		}
+
+		void swap(int i, int j) {
+			T aux = this->vector[i];
+			this->vector[i] = this->vector[j];
+			this->vector[j] = aux;
 		}
 
 		// remove um elemento
