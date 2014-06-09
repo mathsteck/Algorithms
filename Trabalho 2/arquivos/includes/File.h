@@ -10,294 +10,297 @@
 
 class File {
 
-    public:
-        File() {
-        }
+	public:
+		File() {
+		}
 
-        virtual ~File() {
+		virtual ~File() {
 
-        }
+		}
 
-        // metodo auxiliar
-        int getFileSize(char *filename) {
-            FILE *fp = fopen(filename, "rb");
+		// metodo auxiliar
+		int getFileSize(char *filename) {
+			FILE *fp = fopen(filename, "rb");
 
-            if (fp == NULL) return 0;
+			if (fp == NULL) return 0;
 
-            fseek(fp, 0, SEEK_END);
-            int size = ftell(fp);
-            fseek(fp, 0, SEEK_SET);
+			fseek(fp, 0, SEEK_END);
+			int size = ftell(fp);
+			fseek(fp, 0, SEEK_SET);
 
-            fclose(fp);
+			fclose(fp);
 
-            return size;
-        }
+			return size;
+		}
 
-        // sobrecarga de metodo
-        int getFileSize(const char *filename) {
-            FILE *fp = fopen(filename, "rb");
+		// sobrecarga de metodo
+		int getFileSize(const char *filename) {
+			FILE *fp = fopen(filename, "rb");
 
-            if (fp == NULL) return 0;
+			if (fp == NULL) return 0;
 
-            fseek(fp, 0, SEEK_END);
-            int size = ftell(fp);
-            fseek(fp, 0, SEEK_SET);
+			fseek(fp, 0, SEEK_END);
+			int size = ftell(fp);
+			fseek(fp, 0, SEEK_SET);
 
-            fclose(fp);
+			fclose(fp);
 
-            return size;
-        }
-
-        void setClient(Vector<Client *> *clientes){
-            FILE *fp;
-
-            fp = fopen("cliente.dat", "ab+");
-            int correct[7];
-
-            if(fp == NULL)
-                fp = fopen("cliente.dat", "wb+");
-
-            for(int i = 0; i < clientes->size(); i++) {
-                Client *client;
-                client = clientes->get(i);
-
-                fwrite(client->getClientDat()->getString(), sizeof(char), REGISTER_SIZE, fp);
-            }
-
-            fclose(fp);
-        }
-
-        Client * getClientByRRN(int rrn, char *filename) {
-            FILE *fp = fopen(filename, "rb+");
-
-            int size = getFileSize(filename);
-
-            if (REGISTER_SIZE * rrn > size)
-                return NULL;
-
-            char reg[REGISTER_SIZE];
-
-            fseek(fp, rrn*REGISTER_SIZE, SEEK_SET);
-            fread(reg, sizeof(char), REGISTER_SIZE, fp);
-            Client *client = new Client();
-            client->set(reg, 2);
-            fclose(fp);
-
-            return client;
-        }
-
-        void setGenre(Vector<Client *> *clientes) {
-            FILE *fp;
-
-            fp = fopen("genero.dat", "rb+");
-            int correct, result;
-
-            if(fp == NULL) {
-                fp = fopen("genero.dat", "wb+");
-            }
-
-            for(int i = 0; i < clientes->size(); i++) {
-                Client *client = clientes->get(i);
-                genreVerify(client->getPreferredGenresList());
-            }
-
-            fclose(fp);
-        }
-
-        void genreVerify(Vector<String *> *generos) {
-            FILE *fp;
-            int key, size, aux, cmp;
-            char genero_fp[30];
-
-            fp = fopen ("genero.dat", "rb+");
-
-            if(fp == NULL)
-                fp = fopen ("genero.dat", "wb+");
-
-            fseek(fp, 0, SEEK_END);
-            size = getFileSize("genero.dat");
-
-            if (size > 0) {
-                fseek(fp, -sizeof(int)+sizeof(char)*30, SEEK_END);
-                fread(&key, sizeof(int), 1, fp);
-            } else {
-                key = 0;
-            }
-
-            fseek(fp, 0, SEEK_SET);
-
-            for(int i = 0; i < generos->size(); i++) {
-                String *genero = generos->get(i);
-                cmp = 1;
-                if (size > 0) {
-                    fseek(fp, 0, SEEK_SET);
-                    while(!feof(fp)) {
-                        fread(&aux, sizeof(int), 1, fp);
-                        fread(&genero_fp, sizeof(char), 30, fp);
-                        if (!feof(fp)) {
-                            cmp = strcmp(genero->getString(), genero_fp);
-                            if (!cmp)
-                                break;
-                        }
-                    }
-                }
-                if (cmp) {
-                    fwrite(&key, sizeof(int), 1, fp);
-                    fwrite(genero->getString(), sizeof(char), 30, fp);
-                    //printf("%d %s\n", key, genero->getString());
-                    key++;
-                }
-            }
-            fclose(fp);
-        }
-
-        void setClientsGenre(Vector<Client *> *clientes) {
-            for(int i = 0; i < clientes->size(); i++) {
-                Client *client = clientes->get(i);
-                insertClientGenre(client->getPreferredGenresList(), client->getCpf());
-            }
-        }
-
-        void insertClientGenre(Vector<String *> *generos, String *cpf) {
-            FILE *fp, *fp2;
-            int key, aux, cmp;
-            char genero_fp[30];
-
-            fp = fopen("genero.dat", "rb+");
-            if(fp == NULL)
-                fp = fopen("genero.dat", "wb+");
-
-            fp2 = fopen("clientes_generos.dat", "rb+");
-            if(fp2 == NULL)
-                fp2 = fopen("clientes_generos.dat", "wb+");
-
-            for(int i = 0; i < generos->size(); i++) {
-                String *genero = generos->get(i);
-                cmp = 1;
-                fseek(fp, 0, SEEK_SET);
-                while(!feof(fp)) {
-                    fread(&key, sizeof(int), 1, fp);
-                    fread(&genero_fp, sizeof(char), 30, fp);
-                    if (!feof(fp)) {
-                        cmp = strcmp(genero->getString(), genero_fp);
-                        if (!cmp) {
-                            //printf("%s %d\n", cpf->getString(), key);
-                            fwrite(cpf->getString(), sizeof(char), cpf->size(), fp2);
-                            fwrite(&key, sizeof(int), 1, fp2);
-                            break;
-                        }
-                    }
-                }
-            }
-            fclose(fp);
-            fclose(fp2);
-        }
-
-        Vector<PrimaryIndex *> *createClientIdx() {
-            Vector<PrimaryIndex *> *clientIndex = new Vector<PrimaryIndex *>();
-
-            int size = getFileSize("cliente.dat");
-            int total = size/REGISTER_SIZE;
-
-            for (int i = 0; i < total; i++) {
-                Client *client = getClientByRRN(i, (char*) "cliente.dat");
-                PrimaryIndex *pi = new PrimaryIndex(client->getCpf(), i);
-                clientIndex->add(pi);
-            }
-
-            return clientIndex;
-        }
-
-        Vector<SecondaryIndex *> *createOccupationIdx() {
-            Vector<SecondaryIndex *> *clientIndex = new Vector<SecondaryIndex *>();
-
-            int size = getFileSize("cliente.dat");
-            int total = size/REGISTER_SIZE;
-
-            for (int i = 0; i < total; i++) {
-                Client *client = getClientByRRN(i, (char*) "cliente.dat");
-                SecondaryIndex *pi = new SecondaryIndex(client->getCpf(), client->getOccupation());
-                clientIndex->add(pi);
-            }
-
-            return clientIndex;
-        }
-
-        void setClientIdx(Vector<PrimaryIndex *> *clientIndex) {
-            FILE *fp = fopen("cliente.idx", "ab+");
-
-            if(fp == NULL) {
-                printf("Erro ao abrir o arquivo!!!");
-                exit(-1);
-            }
-            if(clientIndex == NULL) {
-                printf("Erro: indice não incializado!!!");
-                exit(-1);
-            }
-
-            // Status zero = arquivo nao modificado (pois estamos criando)
-            char status[] = "0";
-            // Buffer que armazena ate 32 digitos (armazena o RRN em string)
-            char reg[50], buffer[128];
-
-            // Insere o status no começo do arquivo
-            strcpy(reg, status);
-            String *changed = new String(reg);
-            fwrite(status, sizeof(char), 50, fp);
-
-            for(int i = 0; i < clientIndex->size(); i++) {
-                PrimaryIndex *pi = clientIndex->get(i);
-
-                // Converte o inteiro para uma string
-                sprintf(buffer, "%d", pi->getRRN());
-
-                strcpy(reg, pi->getCpf()->getString());
-                strcat(reg, ",");
-                strcat(reg, buffer);
-
-                String *str = new String(reg);
-
-                fwrite(str, sizeof(char), 50, fp);
-            }
-
-            fclose(fp);
-        }
-
-        void setOccupationIdx(Vector<SecondaryIndex *> *occupationIndex) {
-            FILE *fp = fopen("oficio.idx", "ab+");
-
-            if(fp == NULL) {
-                printf("Erro ao abrir o arquivo!!!");
-                exit(-1);
-            }
-            if(occupationIndex == NULL) {
-                printf("Erro: indice não incializado!!!");
-                exit(-1);
-            }
-
-            // Status zero = arquivo nao modificado (pois estamos criando)
-            char status[] = "0";
-            char reg[50], buffer[128];
-
-            // Insere o status no começo do arquivo
-            strcpy(reg, status);
-            String *changed = new String(reg);
-            fwrite(status, sizeof(char), 50, fp);
-
-            for(int i = 0; i < occupationIndex->size(); i++) {
-                SecondaryIndex *pi = occupationIndex->get(i);
-
-                strcpy(reg, pi->getStr()->getString());
-                strcat(reg, ",");
-                strcat(reg, pi->getCpf()->getString());
-
-                String *str = new String(reg);
-
-                fwrite(str, sizeof(char), 50, fp);
-            }
-
-            fclose(fp);
-        }
+			return size;
+		}
+
+		void setClient(Vector<Client *> *clientes){
+			FILE *fp;
+
+			fp = fopen("cliente.dat", "ab+");
+			int correct[7];
+
+			if(fp == NULL)
+				fp = fopen("cliente.dat", "wb+");
+
+			for(int i = 0; i < clientes->size(); i++) {
+				Client *client;
+				client = clientes->get(i);
+
+				fwrite(client->getClientDat()->getString(), sizeof(char), REGISTER_SIZE, fp);
+			}
+
+			fclose(fp);
+		}
+
+		Client * getClientByRRN(int rrn) {
+			FILE *fp = fopen("cliente.dat", "rb+");
+
+			int size = getFileSize("cliente.dat");
+
+			if (REGISTER_SIZE * rrn > size)
+				return NULL;
+
+			char reg[REGISTER_SIZE];
+
+			fseek(fp, rrn*REGISTER_SIZE, SEEK_SET);
+			fread(reg, sizeof(char), REGISTER_SIZE, fp);
+			Client *client = new Client();
+			client->set(reg, 2);
+			fclose(fp);
+
+			return client;
+		}
+
+		void setGenre(Vector<Client *> *clientes) {
+			FILE *fp;
+			
+			fp = fopen("genero.dat", "rb+");
+			int correct, result;
+	
+			if(fp == NULL) {
+        		fp = fopen("genero.dat", "wb+");
+    		}
+
+			for(int i = 0; i < clientes->size(); i++) {
+				Client *client = clientes->get(i);
+				genreVerify(client->getPreferredGenresList());
+			}
+
+			fclose(fp);
+		}
+
+		void genreVerify(Vector<String *> *generos) {
+			FILE *fp;
+			int key, size, aux, cmp;
+			char genero_fp[30];
+
+			fp = fopen ("genero.dat", "rb+");
+
+			if(fp == NULL)
+				fp = fopen ("genero.dat", "wb+");
+
+			fseek(fp, 0, SEEK_END);
+			size = getFileSize("genero.dat");
+
+			if (size > 0) {
+				fseek(fp, -sizeof(int)+sizeof(char)*30, SEEK_END);
+				fread(&key, sizeof(int), 1, fp);
+			} else {
+				key = 0;
+			}
+
+			fseek(fp, 0, SEEK_SET);
+
+			for(int i = 0; i < generos->size(); i++) {
+				String *genero = generos->get(i);
+				cmp = 1;
+				if (size > 0) {
+					fseek(fp, 0, SEEK_SET);
+					while(!feof(fp)) {
+						fread(&aux, sizeof(int), 1, fp);
+						fread(&genero_fp, sizeof(char), 30, fp);
+						if (!feof(fp)) {
+							cmp = strcmp(genero->getString(), genero_fp);
+							if (!cmp)
+								break;
+	            		}
+					}
+				}
+				if (cmp) {
+					fwrite(&key, sizeof(int), 1, fp);
+					fwrite(genero->getString(), sizeof(char), 30, fp);
+					//printf("%d %s\n", key, genero->getString());
+					key++;
+				}
+			}
+			fclose(fp);
+		}
+
+		void setClientsGenre(Vector<Client *> *clientes) {
+			for(int i = 0; i < clientes->size(); i++) {
+				Client *client = clientes->get(i);
+				insertClientGenre(client->getPreferredGenresList(), client->getCpf());
+			}
+		}
+
+		void insertClientGenre(Vector<String *> *generos, String *cpf) {
+			FILE *fp, *fp2;
+			int key, aux, cmp;
+			char genero_fp[30];
+
+			fp = fopen("genero.dat", "rb+");	
+			if(fp == NULL)
+        		fp = fopen("genero.dat", "wb+");
+
+			fp2 = fopen("clientes_generos.dat", "ab+");	
+
+			for(int i = 0; i < generos->size(); i++) {
+				String *genero = generos->get(i);
+				cmp = 1;
+				fseek(fp, 0, SEEK_SET);
+				while(!feof(fp)) {
+					fread(&key, sizeof(int), 1, fp);
+					fread(&genero_fp, sizeof(char), 30, fp);
+					if (!feof(fp)) {
+						cmp = strcmp(genero->getString(), genero_fp);
+						if (!cmp) {
+							//printf("%s %d\n", cpf->getString(), key);
+							fwrite(cpf->getString(), sizeof(char), cpf->size(), fp2);
+							fwrite(&key, sizeof(int), 1, fp2);
+							break;
+						}
+            		}
+				}
+			}
+			fclose(fp);
+			fclose(fp2);
+		}
+
+		Vector<Index *> *createClientIdx() {
+			Vector<Index *> *clientIndex = new Vector<Index *>();
+
+			int size = getFileSize("cliente.dat");
+			int total = size/REGISTER_SIZE;
+
+			for (int i = 0; i < total; i++) {
+				Client *client = getClientByRRN(i);
+				Index *pi = new PrimaryIndex(client->getCpf(), i);
+				clientIndex->add(pi);
+			}
+
+			return clientIndex;
+		}
+
+		Vector<Index *> *createOccupationIndex() {
+			Vector<Index *> *occupationIndex = new Vector<Index *>();
+
+			int size = getFileSize("cliente.dat");
+			int total = size/REGISTER_SIZE;
+
+			for (int i = 0; i < total; i++) {
+				Client *client = getClientByRRN(i);
+				Index *pi = new SecondaryIndex(client->getCpf(), client->getOccupation());
+				occupationIndex->add(pi);
+			}
+
+			return occupationIndex;
+		}
+
+		String *getGenreByKey(int key) {
+			FILE *fp;
+			int aux;
+			char genero_fp[30];
+
+			fp = fopen("genero.dat", "rb+");	
+			if(fp == NULL)
+        		fp = fopen("genero.dat", "wb+");
+
+			while(!feof(fp)) {
+				fread(&aux, sizeof(int), 1, fp);
+				fread(&genero_fp, sizeof(char), 30, fp);
+				if (!feof(fp)) {
+					if (key == aux) {
+						String *genre = new String(genero_fp);
+						return genre;
+					}
+        		}
+			}
+
+        	fclose(fp);
+		}
+
+		Vector<Index *> *createGenreIndex() {
+			Vector<Index *> *clientIndex = new Vector<Index *>();
+			FILE *fp;
+			char aux[11];
+			int key;
+
+			int size = getFileSize("clientes_generos.dat");
+			int total = size/15;
+
+			fp = fopen("clientes_generos.dat", "rb+");
+
+			for (int i = 0; i < total; i++) {
+				fread(aux, sizeof(char), 11, fp);
+				fread(&key, sizeof(int), 1, fp);
+				String *cpf = new String(aux);
+				Index *pi = new SecondaryIndex(cpf, getGenreByKey(key));
+				clientIndex->add(pi);
+			}
+
+			fclose(fp);
+
+			return clientIndex;
+		}
+
+		void writePrimaryIndex(Vector<Index *> *index, const char *indexName) {
+			FILE *fp;
+			int aux;
+
+			fp = fopen(indexName, "rb+");
+			if(fp == NULL)
+        		fp = fopen(indexName, "wb+");
+
+			for (int i = 0; i < index->size(); i++) {
+				PrimaryIndex *item = (PrimaryIndex *) index->get(i);
+				fwrite(item->getCpf()->getString(), sizeof(char), 11, fp);
+				aux = item->getRRN();
+				fwrite(&aux, sizeof(int), 1, fp);
+			}
+
+			fclose(fp);
+		}
+
+		void writeSecondaryIndex(Vector<Index *> *index, const char *indexName) {
+			FILE *fp;
+
+			fp = fopen(indexName, "rb+");
+			if(fp == NULL)
+        		fp = fopen(indexName, "wb+");
+
+			for (int i = 0; i < index->size(); i++) {
+				SecondaryIndex *item = (SecondaryIndex *) index->get(i);
+				fwrite(item->getCpf()->getString(), sizeof(char), 11, fp);
+				fwrite(item->getStr()->getString(), sizeof(char), 30, fp);
+			}
+
+			fclose(fp);
+		}
 };
 
 #endif

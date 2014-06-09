@@ -6,3 +6,4 @@ run:
 
 clean:
 	rm -rf *.dat
+	rm -rf *.idx

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "Vector.h"
 #include "Sstring.h"
@@ -10,6 +11,7 @@
 #include "File.h"
 #include "PrimaryIndex.h"
 #include "SecondaryIndex.h"
+#include "Index.h"
 
 #define READFILE 1
 #define INSERT 2
@@ -24,18 +26,18 @@ class VideoStore {
 
     private:
         Vector<Client *> *clientList;                        // vetor com objetos de clientes
-        Vector<PrimaryIndex *> *clientIndex;                // vetor contendo o indice de clientes
-        Vector<SecondaryIndex *> *genreIndex;                // vetor contendo o indice de generos
-        Vector<SecondaryIndex *> *occupationIndex;            // vetor contendo o indice de oficios
+        Vector<Index *> *clientIndex;                        // vetor contendo o indice primario de clientes
+        Vector<Index *> *genreIndex;                        // vetor contendo o indice secundario de generos
+        Vector<Index *> *occupationIndex;                    // vetor contendo o indice secundario de oficios
 
     public:
 
         VideoStore() {
             // Inicializa as listas
             clientList = new Vector<Client *>();
-            clientIndex = new Vector<PrimaryIndex *>();
-            genreIndex = new Vector<SecondaryIndex *>();
-            occupationIndex = new Vector<SecondaryIndex *>();
+            clientIndex = new Vector<Index *>();
+            genreIndex = new Vector<Index *>();
+            occupationIndex = new Vector<Index *>();
         }
 
         virtual ~VideoStore() {
@@ -46,17 +48,17 @@ class VideoStore {
             }
 
             for (int i = 0; i < clientIndex->size(); i++) {
-                PrimaryIndex *index = clientIndex->get(i);
+                Index *index = clientIndex->get(i);
                 delete index;
             }
 
             for (int i = 0; i < genreIndex->size(); i++) {
-                SecondaryIndex *index = genreIndex->get(i);
+                Index *index = genreIndex->get(i);
                 delete index;
             }
 
             for (int i = 0; i < occupationIndex->size(); i++) {
-                SecondaryIndex *index = occupationIndex->get(i);
+                Index *index = occupationIndex->get(i);
                 delete index;
             }
 
@@ -69,14 +71,18 @@ class VideoStore {
 
         // Menu principal do programa
         void menu() {
-            int option;
+            int option, showOptions;
 
             do {
+                showOptions = checkDatFiles();
                 printf("======= MENU =======\n");
                 printf("\t1. Ler arquivo de clientes\n");
                 printf("\t2. Inserir cliente pelo terminal\n");
-                printf("\t3. Remover cliente\n");
-                printf("\t4. Buscar cliente\n");
+
+                if(showOptions == 1) {
+                    printf("\t3. Remover cliente\n");
+                    printf("\t4. Buscar cliente\n");
+                }
                 printf("\t5. Sair\n");
 
                 printf("Digite: ");
@@ -84,23 +90,33 @@ class VideoStore {
 
                 printf("\n\n");
 
-                switch(option) {
-                    case READFILE:
-                        this->insertClientTxt();
-                    break;
-                    case INSERT:
-                        this->insertClientTerminal(); 
-                    break;
-                    //case: REMOVE: break;
-                    case SEARCH:
-                        this->search();
-                    break;
+                if(option == READFILE) {
+                    this->insertClientTxt();
+                }
+                if(option == INSERT) {
+                    this->insertClientTerminal();
+                }
+                if(option == REMOVE && showOptions == 1) {
+                    continue;
+                }
+                if(option == SEARCH && showOptions == 1) {
+                    this->search();
                 }
 
             } while (option != EXIT);
         }
 
     private:
+
+        int checkDatFiles() {
+            if(access("cliente.dat", F_OK) == -1)
+                return 0;
+            if(access("clientes_generos.dat", F_OK) == -1)
+                return 0;
+            if(access("genero.dat", F_OK) == -1)
+                return 0;
+            return 1;
+        }
 
         // Menus secundarios
         void insertClientTxt() {
@@ -143,34 +159,33 @@ class VideoStore {
             file->setClient(clientList);
             file->setGenre(clientList);
             file->setClientsGenre(clientList);
-            // nessa etapa, nao precisa mais do vetor de clientes pois temos todas as informacoes no dat
+
+            // nessa etapa, nao precisa mais do vetor de clientes pois temos todas as informacoes nos dat
             for (int i = 0; i < clientList->size(); i++) {
                 Client *client = clientList->get(i);
                 delete client;
             }
             delete clientList;
 
-            clientList = new Vector<Client *>();
-            // Gera o indice de clientes
-            clientIndex = file->createClientIdx();
-            this->heapsort(clientIndex, clientIndex->size());
-            file->setClientIdx(clientIndex);
-
-            // Gera o indice de ocupação
-            occupationIndex = file->createOccupationIdx();
-            this->heapsort(occupationIndex, occupationIndex->size());
-            file->setOccupationIdx(occupationIndex);
-
+            this->clientList = new Vector<Client *>();
+            this->clientIndex = file->createClientIdx();
+            this->genreIndex = file->createGenreIndex();
+            this->occupationIndex = file->createOccupationIndex();
+            this->heapsort(this->clientIndex, this->clientIndex->size());
+            this->heapsort(this->genreIndex, this->genreIndex->size());
+            this->heapsort(this->occupationIndex, this->occupationIndex->size());
+            file->writePrimaryIndex(this->clientIndex, "cliente.idx");
+            file->writeSecondaryIndex(this->occupationIndex, "oficio.idx");
+            file->writeSecondaryIndex(this->genreIndex, "genero.idx");
             delete file;
-
             /* imprimir
             for (int i = 0; i < occupationIndex->size(); i++) {
-                SecondaryIndex *pi = occupationIndex->get(i);
+                SecondaryIndex *pi = (SecondaryIndex *) occupationIndex->get(i);
                 printf("%s %s\n", pi->getCpf()->getString(), pi->getStr()->getString());
             }*/
         }
 
-        // TODO: realizar as mesmas operações do insert TXT!!!
+        // TODO
         void insertClientTerminal() {
             Client *client = new Client();
             client->readTerminal();
@@ -178,6 +193,7 @@ class VideoStore {
         }
 
         void remove() {
+
         }
 
         void search() {
@@ -190,11 +206,11 @@ class VideoStore {
             scanf("%s", cpf);
 
             if (clientIndex->size() > 0 && strlen(cpf) == 11) {
-                pi = binary(clientIndex, 0, clientIndex->size(), cpf);
-                client = file->getClientByRRN(pi->getRRN(), (char*) "cliente.dat");
-                if (client != NULL)
+                pi = (PrimaryIndex *) binary(clientIndex, 0, clientIndex->size(), cpf);
+                if (pi != NULL) {
+                    client = file->getClientByRRN(pi->getRRN());
                     printf("Nome: %s\n", client->getName()->getString());
-                else
+                } else
                     printf("Nao encontrado...\n\n");
             } else {
                 printf("Erro ao buscar!\n\n");
@@ -203,20 +219,20 @@ class VideoStore {
             delete file;
         }
 
-        /* HEAPSORT E BINARY SEARCH P/ A PRIMARY INDEX */
+        // HEAPSORT
 
-        void maxheapify(Vector<PrimaryIndex *> *vector, int position, int length) {
+        void maxheapify(Vector<Index *> *vector, int position, int length) {
             int largest_id = position;
             int right_id = RIGHT_SON(position);
             int left_id = LEFT_SON(position);
 
             // descobrindo a posicao do maior elemento
             if (right_id < length && 
-                strcmp(vector->get(right_id)->getCpf()->getString(), vector->get(largest_id)->getCpf()->getString()) > 0)
+                strcmp(vector->get(right_id)->get()->getString(), vector->get(largest_id)->get()->getString()) > 0)
                 largest_id = right_id;
 
             if (left_id < length &&    
-                strcmp(vector->get(left_id)->getCpf()->getString(), vector->get(largest_id)->getCpf()->getString()) > 0)
+                strcmp(vector->get(left_id)->get()->getString(), vector->get(largest_id)->get()->getString()) > 0)
                 largest_id = left_id;
 
             // troca de posicao (position, largest_id)
@@ -227,29 +243,7 @@ class VideoStore {
             }
         }
 
-        void maxheapify(Vector<SecondaryIndex *> *vector, int position, int length) {
-            int largest_id = position;
-            int right_id = RIGHT_SON(position);
-            int left_id = LEFT_SON(position);
-
-            // descobrindo a posicao do maior elemento
-            if (right_id < length && 
-                strcmp(vector->get(right_id)->getStr()->getString(), vector->get(largest_id)->getStr()->getString()) > 0)
-                largest_id = right_id;
-
-            if (left_id < length &&    
-                strcmp(vector->get(left_id)->getStr()->getString(), vector->get(largest_id)->getStr()->getString()) > 0)
-                largest_id = left_id;
-
-            // troca de posicao (position, largest_id)
-            if (largest_id != position) {
-                // realmente o maior naum eh o pai
-                vector->swap(position, largest_id);
-                maxheapify(vector, largest_id, length);
-            }
-        }
-
-        void buildMaxheap(Vector<PrimaryIndex *> *vector, int length) {
+        void buildMaxheap(Vector<Index *> *vector, int length) {
             int elements = length / 2 - 1;
 
             while (elements >= 0) {
@@ -258,17 +252,7 @@ class VideoStore {
             }
         }
 
-        void buildMaxheap(Vector<SecondaryIndex *> *vector, int length) {
-            int elements = length / 2 - 1;
-
-            while (elements >= 0) {
-                maxheapify(vector, elements, length);
-                elements--;
-            }
-        }
-
-
-        void heapsort(Vector<PrimaryIndex *> *vector, int length) {
+        void heapsort(Vector<Index *> *vector, int length) {
             int i;
 
             // construindo o max heap
@@ -282,39 +266,12 @@ class VideoStore {
             }
         }
 
-        void heapsort(Vector<SecondaryIndex *> *vector, int length) {
-            int i;
+        // BINARY SEARCH RECURSIVO
 
-            // construindo o max heap
-            buildMaxheap(vector, length);
-
-            for (i = 1; i < length; i++) {
-                vector->swap(0, length-i);
-
-                // garantindo que o max heap eh valido!
-                maxheapify(vector, 0, length-i);
-            }
-        }
-
-        PrimaryIndex * binary(Vector<PrimaryIndex *> *vector, int start, int end, char *key) {
+        Index * binary(Vector<Index *> *vector, int start, int end, char *key) {
             int central = start + ((end - start + 1) / 2);
 
-            int cmp = strcmp(key, vector->get(central)->getCpf()->getString());
-
-            if (cmp == 0) return vector->get(central);
-            if (start >= end) return NULL;
-
-            if (cmp < 0) {
-                return binary(vector, start, central-1, key);
-            } else if (cmp > 0) {
-                return binary(vector, central+1, end, key);
-            }
-        }
-
-        SecondaryIndex * binary(Vector<SecondaryIndex *> *vector, int start, int end, char *key) {
-            int central = start + ((end - start + 1) / 2);
-
-            int cmp = strcmp(key, vector->get(central)->getStr()->getString());
+            int cmp = strcmp(key, vector->get(central)->get()->getString());
 
             if (cmp == 0) return vector->get(central);
             if (start >= end) return NULL;

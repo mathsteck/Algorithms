@@ -3,47 +3,59 @@
 
 #include "Sstring.h"
 #include "Vector.h"
+#include "Index.h"
 
-class PrimaryIndex {
-    private:
-        String *cpf;
-        int rrn;
+// Classe indice primario, que herda do tipo indice e implementa as funcoes get e set
 
-    public:
-        PrimaryIndex() {
-            this->cpf = NULL;
-            this->rrn = 0;
-        }
+class PrimaryIndex : public Index {
+	private:
+		String *cpf;
+		int rrn;
 
-        PrimaryIndex(String *cpf, int rrn) {
-            this->cpf = cpf;
-            this->rrn = rrn;
-        }
+	public:
+		PrimaryIndex() {
+			this->cpf = NULL;
+			this->rrn = 0;
+		}
 
-        ~PrimaryIndex() {
-            if (this->cpf != NULL)
-            	delete cpf;
-        }
+		PrimaryIndex(String *cpf, int rrn) {
+			this->cpf = cpf;
+			this->rrn = rrn;
+		}
 
-        String *getCpf() { return this->cpf; }
-        int getRRN() { return this->rrn; }
-        
-        void setRRN(int rrn) {
-            this->rrn = rrn;
-        }
+		~PrimaryIndex() {
+			if (this->cpf != NULL)
+				delete cpf;
+		}
 
-        void setCpf(String *cpf) {
-            if (this->cpf != NULL)
-            	delete this->cpf;
-            this->cpf = cpf;
-        }
+		String *getCpf() { return this->cpf; }
+		int getRRN() { return this->rrn; }
 
-        void setCpf(char *cpf) {
-            if (this->cpf != NULL)
-            	delete this->cpf;
-            this->cpf = new String(cpf);
-        }
+		void setRRN(int rrn) {
+			this->rrn = rrn;
+		}
 
+		void setCpf(String *cpf) {
+			if (this->cpf != NULL)
+				delete this->cpf;
+			this->cpf = cpf;
+		}
+
+		void setCpf(char *cpf) {
+			if (this->cpf != NULL)
+				delete this->cpf;
+			this->cpf = new String(cpf);
+		}
+
+		String *get() { 
+			return this->cpf; 
+		}
+
+		void set(Index *index) {
+			PrimaryIndex *param = (PrimaryIndex *) index;
+			this->setCpf(param->getCpf());
+			this->setRRN(param->getRRN());
+		}
 };
 
 #endif

@@ -3,8 +3,9 @@
 
 #include "Sstring.h"
 #include "Vector.h"
+#include "Index.h"
 
-class SecondaryIndex {
+class SecondaryIndex : public Index {
 	private:
 		String *cpf;
 		String *str;
@@ -20,18 +21,26 @@ class SecondaryIndex {
 			this->str = str;
 		}
 
-		~SecondaryIndex() {
+		virtual ~SecondaryIndex() {
 			if (this->cpf != NULL)
 				delete cpf;
+			if (this->str != NULL)
+				delete str;
 		}
 
 		String *getCpf() { return this->cpf; }
 		String *getStr() { return this->str; }
 
 		void setStr(String *str) {
-			if (this->cpf != NULL)
-				delete this->cpf;
-			this->cpf = cpf;
+			if (this->str != NULL)
+				delete this->str;
+			this->str = str;
+		}
+
+		void setStr(char *str) {
+			if (this->str != NULL)
+				delete this->str;
+			this->str = new String(str);
 		}
 
 		void setCpf(String *cpf) {
@@ -46,6 +55,15 @@ class SecondaryIndex {
 			this->cpf = new String(cpf);
 		}
 
+		void set(Index *index) {
+			SecondaryIndex *param = (SecondaryIndex *) index;
+			this->setCpf(param->getCpf());
+			this->setStr(param->getStr());
+		}
+
+		String *get() { 
+			return this->str; 
+		}
 };
 
 #endif
