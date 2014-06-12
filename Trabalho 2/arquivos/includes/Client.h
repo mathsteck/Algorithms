@@ -174,15 +174,18 @@ class Client {
 			printf("Idade: %s\n", getAge()->getString());
 			printf("Genero: %s\n", getGender()->getString());
 			printf("Oficio: %s\n", getOccupation()->getString());
-			printf("Generos: ");
-			for (int i = 0; i < getPreferredGenresList()->size(); i++) {
-				String *str = getPreferredGenresList()->get(i);
-				if (i+1 == getPreferredGenresList()->size())
-					printf("%s\n", str->getString());
-				else
-					printf("%s, ", str->getString());
+			if (this->preferredGenresList->size() > 0) {
+				printf("Generos: ");
+				for (int i = 0; i < getPreferredGenresList()->size(); i++) {
+					String *str = getPreferredGenresList()->get(i);
+					if (i+1 == getPreferredGenresList()->size())
+						printf("%s\n", str->getString());
+					else
+						printf("%s, ", str->getString());
+				}
 			}
 			if (this->type != NULL) printf("Tipo: %s\n", getType()->getString());
+			printf("\n");
 		}
 
 		// source = 1 se for terminal/txt ou 2 se for clientes.dat

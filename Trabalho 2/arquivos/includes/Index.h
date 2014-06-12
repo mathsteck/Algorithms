@@ -7,14 +7,13 @@
 // Classe abstrata indice
 
 class Index {
-	
-	public:
+    public:
 
-		virtual ~Index() {
-			
-		}
-		virtual String * get() = 0;
-		virtual void set(Index *index) = 0;
+        virtual ~Index() {}
+        virtual String * get() = 0;
+        virtual String * getCpf() {}
+        virtual String * getStr() {}
+        virtual void set(Index *index) = 0;
 };
 
 #endif

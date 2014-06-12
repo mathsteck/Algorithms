@@ -17,7 +17,8 @@
 #define INSERT 2
 #define REMOVE 3
 #define SEARCH 4
-#define EXIT 5
+#define OCCUPATION 6
+#define EXIT 7
 
 #define RIGHT_SON(position) (position+1)*2
 #define LEFT_SON(position) (position+1)*2-1
@@ -71,54 +72,74 @@ class VideoStore {
 
         // Menu principal do programa
         void menu() {
-            int option, showOptions;
-
+            int option, hideOptions;
+            printf("%d\n", hideOptions);
             do {
-                showOptions = checkDatFiles();
+                hideOptions = checkDatFiles();
                 printf("======= MENU =======\n");
                 printf("\t1. Ler arquivo de clientes\n");
                 printf("\t2. Inserir cliente pelo terminal\n");
 
-                if(showOptions == 1) {
+                if(!hideOptions) {
                     printf("\t3. Remover cliente\n");
                     printf("\t4. Buscar cliente\n");
+                    printf("\t5. Genero\n");
+                    printf("\t6. Profissao\n");
                 }
-                printf("\t5. Sair\n");
+
+                printf("\t7. Sair\n");
 
                 printf("Digite: ");
                 scanf("%d", &option);
 
                 printf("\n\n");
 
-                if(option == READFILE) {
-                    this->insertClientTxt();
+                if(!hideOptions) {
+                    switch(option) {
+                        case READFILE:
+                            this->insertClientTxt();
+                        break;
+                        case INSERT:
+                            this->insertClientTerminal();
+                        break;
+                        case REMOVE:
+                            this->remove();
+                        break;
+                        case SEARCH:
+                            this->searchPrimaryIndex();
+                        break;
+                        case OCCUPATION:
+                            this->occupationMenu();
+                        break;
+                    }
                 }
-                if(option == INSERT) {
-                    this->insertClientTerminal();
-                }
-                if(option == REMOVE && showOptions == 1) {
-                    continue;
-                }
-                if(option == SEARCH && showOptions == 1) {
-                    this->search();
+                else {
+                    switch(option) {
+                        case READFILE:
+                            this->insertClientTxt();
+                        break;
+                        case INSERT:
+                            this->insertClientTerminal();
+                        break;
+                    }
                 }
 
             } while (option != EXIT);
         }
 
     private:
-
         int checkDatFiles() {
+            // Se não existir o arquivo
             if(access("cliente.dat", F_OK) == -1)
-                return 0;
+                return 1;
             if(access("clientes_generos.dat", F_OK) == -1)
-                return 0;
+                return 1;
             if(access("genero.dat", F_OK) == -1)
-                return 0;
-            return 1;
+                return 1;
+            return 0;
         }
 
-        // Menus secundarios
+        // insere clientes a partir de um arquivo txt
         void insertClientTxt() {
             int size, last, i, j;
             char *temp, *aux, reg[500], filename[100];
@@ -166,6 +187,13 @@ class VideoStore {
                 delete client;
             }
             delete clientList;
+            delete file;
+
+            this->createIndexes();
+        }
+
+        void createIndexes() {
+            File *file = new File();
 
             this->clientList = new Vector<Client *>();
             this->clientIndex = file->createClientIdx();
@@ -174,42 +202,212 @@ class VideoStore {
             this->heapsort(this->clientIndex, this->clientIndex->size());
             this->heapsort(this->genreIndex, this->genreIndex->size());
             this->heapsort(this->occupationIndex, this->occupationIndex->size());
+
+            // escreve nos arquivos
             file->writePrimaryIndex(this->clientIndex, "cliente.idx");
             file->writeSecondaryIndex(this->occupationIndex, "oficio.idx");
             file->writeSecondaryIndex(this->genreIndex, "genero.idx");
+
             delete file;
-            /* imprimir
-            for (int i = 0; i < occupationIndex->size(); i++) {
-                SecondaryIndex *pi = (SecondaryIndex *) occupationIndex->get(i);
-                printf("%s %s\n", pi->getCpf()->getString(), pi->getStr()->getString());
-            }*/
         }
 
-        // TODO
         void insertClientTerminal() {
             Client *client = new Client();
             client->readTerminal();
             clientList->add(client);
+
+            File *file = new File();
+            file->setClient(clientList);
+            file->setGenre(clientList);
+            file->setClientsGenre(clientList);
+
+            // nessa etapa, nao precisa mais do vetor de clientes pois temos todas as informacoes nos dat
+            for (int i = 0; i < clientList->size(); i++) {
+                Client *client = clientList->get(i);
+                delete client;
+            }
+            delete clientList;
+            delete file;
+
+            this->createIndexes();
         }
 
+        // TODO
         void remove() {
+            char cpf[30];
+            File *file = new File();
+            Vector<Index *> *result;
+            PrimaryIndex *pi;
 
+            printf("Digite cpf a ser removido: ");
+            scanf("%s", cpf);
+
+            if (clientIndex->size() > 0 && strlen(cpf) == 11) {
+                result = binary(clientIndex, 0, clientIndex->size(), cpf);
+                if (result != NULL) {
+                    for (int i = 0; i < result->size(); i++) {
+                        pi = (PrimaryIndex *) result->get(i);
+                        file->removeClient(pi->getCpf(), pi->getRRN());
+                    }
+                    delete result;
+                } else
+                    printf("Nao existe tal cpf...\n\n");
+            } else {
+                printf("Erro ao buscar!\n\n");
+            }
+
+            this->createIndexes();
+
+            delete file;
         }
 
-        void search() {
+        // TODO
+        void occupationMenu() {
+            char occupation[30];
+            char genre[30];
+            int option;
+            Vector<Index *> *result1, *result2, *result;
+
+            printf("Digite a profissao: ");
+            scanf("%s", occupation);
+
+            result1 = searchSecondaryIndexOrderly(2, occupation);
+
+            if (result1 != NULL) {
+                printf("1. Retornar o top 10 generos mais populares para essa profissao\n");
+                printf("2. Dado genero, receber lista de CPFs de que gostam desse genero com essa profissao\nDigite: ");
+                scanf("%d", &option);
+
+                if (option == 1) {
+                    result2 = new Vector<Index *>();
+                    for(int i = 0; i < result1->size(); i++) {
+                        for(int j = 0; j < genreIndex->size(); j++) {
+                            if(strcmp(genreIndex->get(j)->getCpf()->getString(), result1->get(i)->getCpf()->getString()) == 0)
+                                result2->add(genreIndex->get(j));
+                        }
+                    }
+                    this->heapsort(result2, result2->size());
+
+                    Vector<PrimaryIndex *> *top_genre = new Vector<PrimaryIndex *> ();
+                    int id = 0;
+
+                    for(int i = 0; i < result2->size(); i++) {
+                        //printf("%s %s\n", result2->get(i)->getCpf()->getString(), result2->get(i)->getStr()->getString());
+                        PrimaryIndex *pi = new PrimaryIndex();
+                        pi->setCpf(result2->get(i)->getStr());
+
+                        if(top_genre->size() == 0) {
+                            pi->setRRN(1);
+                            top_genre->add(pi);
+                        }
+                        else if(strcmp(top_genre->get(id)->getCpf()->getString(), pi->getCpf()->getString()) == 0){
+                            top_genre->get(id)->setRRN(top_genre->get(id)->getRRN() + 1);
+                        }
+                        else {
+                            pi->setRRN(1);
+                            top_genre->add(pi);
+                            id++;
+                        }
+                    }
+                    printf("\n");
+                    this->bubble_sort(top_genre, top_genre->size(), 1);
+                    for(int i = 0; i < top_genre->size() && i < 10; i++) {
+                        printf("%d) %s\n", i+1, top_genre->get(i)->getCpf()->getString());
+                    }
+                    delete top_genre;
+                }
+
+                if (option == 2) {
+                    printf("Digite o genero: ");
+                    scanf("%s", genre);
+                    result2 = searchSecondaryIndexOrderly(1, genre);    // busca lista de cpfs do genero
+
+                    if (result2 != NULL) {
+                        if (result1->size() > 0 && result2->size() > 0) {    // faz matching das listas
+                            result = matchingCpf(result1, result2);
+                            for(int i = 0; i < result->size(); i++)
+                                printf("%s\n", result->get(i)->getCpf()->getString());
+                            delete result;
+                        }
+                    }
+                }
+                delete result1;
+                delete result2;
+            }
+        }
+
+        Vector <Index *> * matchingCpf(Vector <Index *> *result1, Vector <Index *> *result2) {
+            Vector <Index *> *result = new Vector <Index *> ();
+            for(int i = 0, j = 0; i < result1->size() && j < result2->size();) {
+                printf("i = %d j = %d | %s | %s |\n", i, j, result1->get(i)->getCpf()->getString(), result2->get(j)->getCpf()->getString());
+                int cmp = strcmp(result1->get(i)->getCpf()->getString(), result2->get(j)->getCpf()->getString());
+                if (cmp < 0) {
+                    i++;
+                } else if (cmp > 0) {
+                    j++;
+                } else {
+                    result->add(result1->get(i));
+                    i++;
+                    j++;
+                }
+            }
+
+            return result;
+        }
+
+        // se 1 busca no genreIndex se 2 busca na occupationIndex
+        // retorna sempre um vetor de CPFs resultantes da busca ordenado com contadores zerados
+        Vector<Index *> *searchSecondaryIndexOrderly(int type, char *aux) {
+            File *file = new File();
+            Client *client;
+            Vector<Index *> *searchResult, *resultList, *secondary;
+            SecondaryIndex *si;
+
+            if (type == 1)
+                secondary = genreIndex;
+            else if (type == 2)
+                secondary = occupationIndex;
+
+            if (secondary->size() > 0 && strlen(aux) > 0) {
+                searchResult = binary(secondary, 0, secondary->size(), aux);
+                if (searchResult != NULL) {
+                    resultList = new Vector<Index *>();
+                    for (int i = 0; i < searchResult->size(); i++) {
+                        PrimaryIndex *pi = new PrimaryIndex(searchResult->get(i)->getCpf(), 0);
+                        resultList->add(pi);
+                        //printf("%s %s\n", si->getCpf()->getString(), si->get()->getString());
+                    }
+                    delete searchResult;
+                    this->heapsort(resultList, resultList->size());
+                    return resultList;
+                } else
+                    return NULL;
+            } else {
+                return NULL;
+            }
+
+            delete file;
+        }
+
+        void searchPrimaryIndex() {
             char cpf[30];
             File *file = new File();
             Client *client;
+            Vector<Index *> *result;
             PrimaryIndex *pi;
 
             printf("Digite cpf a ser buscado: ");
             scanf("%s", cpf);
 
             if (clientIndex->size() > 0 && strlen(cpf) == 11) {
-                pi = (PrimaryIndex *) binary(clientIndex, 0, clientIndex->size(), cpf);
-                if (pi != NULL) {
-                    client = file->getClientByRRN(pi->getRRN());
-                    printf("Nome: %s\n", client->getName()->getString());
+                result = binary(clientIndex, 0, clientIndex->size(), cpf);
+                if (result != NULL) {
+                    for (int i = 0; i < result->size(); i++) {
+                        pi = (PrimaryIndex *) result->get(i);
+                        client = file->getClientByRRN(pi->getRRN());
+                        client->print();
+                    }
+                    delete result;
                 } else
                     printf("Nao encontrado...\n\n");
             } else {
@@ -266,20 +464,57 @@ class VideoStore {
             }
         }
 
-        // BINARY SEARCH RECURSIVO
+        // BINARY SEARCH RECURSIVO - pode haver algum bug aqui...
 
-        Index * binary(Vector<Index *> *vector, int start, int end, char *key) {
+        Vector<Index *> *binary(Vector<Index *> *vector, int start, int end, char *key) {
             int central = start + ((end - start + 1) / 2);
 
             int cmp = strcmp(key, vector->get(central)->get()->getString());
 
-            if (cmp == 0) return vector->get(central);
+            if (cmp == 0) {
+                Vector<Index *> *result = new Vector<Index *>();
+                while (central-1 > 0) {
+                    if (strcmp(key, vector->get(central-1)->get()->getString()) == 0) {
+                        central--;
+                    } else {
+                        break;
+                    }
+                }
+                while (strcmp(key, vector->get(central)->get()->getString()) == 0) {
+                    result->add(vector->get(central));
+                    if (central + 1 != vector->size())
+                        central++;
+                    else
+                        break;
+                }
+                return result;
+            }
+
             if (start >= end) return NULL;
 
             if (cmp < 0) {
                 return binary(vector, start, central-1, key);
             } else if (cmp > 0) {
                 return binary(vector, central+1, end, key);
+            }
+        }
+
+
+        // mode = 0 crescente mode = 1 decrescente
+        void bubble_sort(Vector<PrimaryIndex *> *vector, int size, int mode) {
+            for(int i = size - 1; i >= 1; i--) {
+                for(int j = 0; j < i ; j++) {
+                    if(mode == 0) {
+                        if(vector->get(j)->getRRN() > vector->get(j+1)->getRRN()) {
+                            vector->swap(j, j+1);
+                        }
+                    }
+                    if(mode == 1) {
+                        if(vector->get(j)->getRRN() < vector->get(j+1)->getRRN()) {
+                            vector->swap(j, j+1);
+                        }
+                    }
+                }
             }
         }
 };
