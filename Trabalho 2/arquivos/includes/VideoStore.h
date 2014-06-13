@@ -17,6 +17,7 @@
 #define INSERT 2
 #define REMOVE 3
 #define SEARCH 4
+#define GENRE 5
 #define OCCUPATION 6
 #define EXIT 7
 
@@ -73,7 +74,6 @@ class VideoStore {
         // Menu principal do programa
         void menu() {
             int option, hideOptions;
-            printf("%d\n", hideOptions);
             do {
                 hideOptions = checkDatFiles();
                 printf("======= MENU =======\n");
@@ -107,6 +107,9 @@ class VideoStore {
                         break;
                         case SEARCH:
                             this->searchPrimaryIndex();
+                        break;
+                        case GENRE:
+                            this->genreMenu();
                         break;
                         case OCCUPATION:
                             this->occupationMenu();
@@ -261,7 +264,6 @@ class VideoStore {
             delete file;
         }
 
-        // TODO
         void occupationMenu() {
             char occupation[30];
             char genre[30];
@@ -279,6 +281,7 @@ class VideoStore {
                 scanf("%d", &option);
 
                 if (option == 1) {
+                    //Lista de cpfs com uma ocupação específica
                     result2 = new Vector<Index *>();
                     for(int i = 0; i < result1->size(); i++) {
                         for(int j = 0; j < genreIndex->size(); j++) {
@@ -288,29 +291,10 @@ class VideoStore {
                     }
                     this->heapsort(result2, result2->size());
 
-                    Vector<PrimaryIndex *> *top_genre = new Vector<PrimaryIndex *> ();
-                    int id = 0;
+                    Vector<PrimaryIndex *> *top_genre = findTopGenres(result2);
 
-                    for(int i = 0; i < result2->size(); i++) {
-                        //printf("%s %s\n", result2->get(i)->getCpf()->getString(), result2->get(i)->getStr()->getString());
-                        PrimaryIndex *pi = new PrimaryIndex();
-                        pi->setCpf(result2->get(i)->getStr());
-
-                        if(top_genre->size() == 0) {
-                            pi->setRRN(1);
-                            top_genre->add(pi);
-                        }
-                        else if(strcmp(top_genre->get(id)->getCpf()->getString(), pi->getCpf()->getString()) == 0){
-                            top_genre->get(id)->setRRN(top_genre->get(id)->getRRN() + 1);
-                        }
-                        else {
-                            pi->setRRN(1);
-                            top_genre->add(pi);
-                            id++;
-                        }
-                    }
+                    // imprime os top generos na tela
                     printf("\n");
-                    this->bubble_sort(top_genre, top_genre->size(), 1);
                     for(int i = 0; i < top_genre->size() && i < 10; i++) {
                         printf("%d) %s\n", i+1, top_genre->get(i)->getCpf()->getString());
                     }
@@ -336,6 +320,33 @@ class VideoStore {
             }
         }
 
+        Vector<PrimaryIndex *> * findTopGenres(Vector<Index*> *result) {
+            Vector<PrimaryIndex *> *top_genre = new Vector<PrimaryIndex *> ();
+            int id = 0;
+
+            for(int i = 0; i < result->size(); i++) {
+                //printf("%s %s\n", result2->get(i)->getCpf()->getString(), result2->get(i)->getStr()->getString());
+                PrimaryIndex *pi = new PrimaryIndex();
+                pi->setCpf(result->get(i)->getStr());
+
+                if(top_genre->size() == 0) {
+                    pi->setRRN(1);
+                    top_genre->add(pi);
+                }
+                else if(strcmp(top_genre->get(id)->getCpf()->getString(), pi->getCpf()->getString()) == 0){
+                    top_genre->get(id)->setRRN(top_genre->get(id)->getRRN() + 1);
+                }
+                else {
+                    pi->setRRN(1);
+                    top_genre->add(pi);
+                    id++;
+                }
+            }
+            this->bubblesort(top_genre, top_genre->size(), 1);
+
+            return top_genre;
+        }
+
         Vector <Index *> * matchingCpf(Vector <Index *> *result1, Vector <Index *> *result2) {
             Vector <Index *> *result = new Vector <Index *> ();
             for(int i = 0, j = 0; i < result1->size() && j < result2->size();) {
@@ -353,6 +364,76 @@ class VideoStore {
             }
 
             return result;
+        }
+
+        void genreMenu() {
+            int option, n = 0;
+            char token[256];
+            while(n <= 0) {
+                printf("Digite o numero de generos que deseja pesquisar:\n");
+                scanf("%d", &n);
+            }
+            // Lista de gêneros inseridos pelo usuário
+            Vector <SecondaryIndex*> *genres = new Vector<SecondaryIndex *>();
+            for(int i = 0; i < n; i++) {
+                printf("Digite o genero:\n");
+                scanf("%s", token);
+                SecondaryIndex *si = new SecondaryIndex();
+                si->setStr(token);
+                genres->add(si);
+            }
+
+            printf("1. Retornar os 3 generos mais populares entre as pessoas que gostam dos generos deste conjunto.\n");
+            printf("2. Os dados dos 10 clientes mais jovens que gostam destes gêneros.\nDigite:");
+            scanf("%d", &option);
+
+            this->bubblesort(genres, genres->size(), 0);
+
+            if(option == 1) {
+
+                Vector <Index*> *cpf_list;
+
+                // Um vetor de vetores de primary index
+                Vector <Vector <PrimaryIndex *>* > *results = new Vector<Vector<PrimaryIndex *>* >();
+                // Para cada gênero inserido pelo usuário
+                for(int i = 0; i < genres->size(); i++) {
+                    printf("GENRE: %s\n", genres->get(i)->getStr()->getString());
+
+                    // Procura todos os CPFs que gostam deste genero
+                    cpf_list = searchSecondaryIndexOrderly(1, genres->get(i)->getStr()->getString());
+                    Vector<Index *> *genre_cpf_list = new Vector<Index *>();
+
+                    // Procura todos os gêneros a partir do cpf
+                    for(int j = 0; j < cpf_list->size(); j++) {
+                        for(int k = 0; k < genreIndex->size(); k++) {
+                            if(strcmp(genreIndex->get(k)->getCpf()->getString(), cpf_list->get(j)->getCpf()->getString()) == 0)
+                                genre_cpf_list->add(genreIndex->get(k));
+                        }
+                    }
+
+                    this->heapsort(genre_cpf_list, genre_cpf_list->size());
+                    //Procura os top gêneros dessa lista de cpf/genero
+                    Vector<PrimaryIndex *> *top_genres = findTopGenres(genre_cpf_list);
+
+                    for(int k = 0, j = 0; k < top_genres->size(); k++) {
+                        if(strcmp(top_genres->get(k)->getCpf()->getString(), genres->get(i)->getStr()->getString()) != 0) {
+                            printf("%d) %s\n", j+1, top_genres->get(k)->getCpf()->getString());
+
+                            // Adiciona cada uma das listas resultantes em result
+                            results->add(top_genres);
+                            j++;
+                        }
+                    }
+                }
+
+                // TODO fazer merge de todas as listas
+                //for(int i = 0; i < results->size(); i++) {
+                //    for(int j = 0; j < results->get(i)->size(); j++)
+                //}
+            }
+
+            //if(option == 2) {
+            //}
         }
 
         // se 1 busca no genreIndex se 2 busca na occupationIndex
@@ -501,7 +582,7 @@ class VideoStore {
 
 
         // mode = 0 crescente mode = 1 decrescente
-        void bubble_sort(Vector<PrimaryIndex *> *vector, int size, int mode) {
+        void bubblesort(Vector<PrimaryIndex *> *vector, int size, int mode) {
             for(int i = size - 1; i >= 1; i--) {
                 for(int j = 0; j < i ; j++) {
                     if(mode == 0) {
@@ -511,6 +592,24 @@ class VideoStore {
                     }
                     if(mode == 1) {
                         if(vector->get(j)->getRRN() < vector->get(j+1)->getRRN()) {
+                            vector->swap(j, j+1);
+                        }
+                    }
+                }
+            }
+        }
+
+        // mode = 0 crescente mode = 1 decrescente
+        void bubblesort(Vector<SecondaryIndex *> *vector, int size, int mode) {
+            for(int i = size - 1; i >= 1; i--) {
+                for(int j = 0; j < i ; j++) {
+                    if(mode == 0) {
+                        if(strcmp(vector->get(j)->getStr()->getString(), vector->get(j+1)->getStr()->getString()) > 0) {
+                            vector->swap(j, j+1);
+                        }
+                    }
+                    if(mode == 1) {
+                        if(strcmp(vector->get(j)->getStr()->getString(), vector->get(j+1)->getStr()->getString()) < 0) {
                             vector->swap(j, j+1);
                         }
                     }
