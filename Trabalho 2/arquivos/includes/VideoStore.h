@@ -368,7 +368,8 @@ class VideoStore {
         void genreMenu() {
             int option, n = 0;
             char token[256];
-            while(n <= 0) {
+            File file;
+            while(n <= 0 || n > file.getFileSize("genero.dat")/34) {
                 printf("Digite o numero de generos que deseja pesquisar:\n");
                 scanf("%d", &n);
             }
