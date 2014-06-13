@@ -350,7 +350,6 @@ class VideoStore {
         Vector <Index *> * matchingCpf(Vector <Index *> *result1, Vector <Index *> *result2) {
             Vector <Index *> *result = new Vector <Index *> ();
             for(int i = 0, j = 0; i < result1->size() && j < result2->size();) {
-                printf("i = %d j = %d | %s | %s |\n", i, j, result1->get(i)->getCpf()->getString(), result2->get(j)->getCpf()->getString());
                 int cmp = strcmp(result1->get(i)->getCpf()->getString(), result2->get(j)->getCpf()->getString());
                 if (cmp < 0) {
                     i++;
@@ -394,44 +393,63 @@ class VideoStore {
                 Vector <Index*> *cpf_list;
 
                 // Um vetor de vetores de primary index
-                Vector <Vector <PrimaryIndex *>* > *results = new Vector<Vector<PrimaryIndex *>* >();
+                Vector <Vector <Index *>* > *results = new Vector<Vector<Index *>* >();
                 // Para cada gênero inserido pelo usuário
                 for(int i = 0; i < genres->size(); i++) {
-                    printf("GENRE: %s\n", genres->get(i)->getStr()->getString());
-
                     // Procura todos os CPFs que gostam deste genero
                     cpf_list = searchSecondaryIndexOrderly(1, genres->get(i)->getStr()->getString());
-                    Vector<Index *> *genre_cpf_list = new Vector<Index *>();
+                    results->add(cpf_list);
+                }
+                // Matching
+                Vector<Index *> *result;
+                for(int i = 0; i + 1 < results->size(); i++) {
+                    Vector<Index *> *left, *right;
 
-                    // Procura todos os gêneros a partir do cpf
-                    for(int j = 0; j < cpf_list->size(); j++) {
-                        for(int k = 0; k < genreIndex->size(); k++) {
-                            if(strcmp(genreIndex->get(k)->getCpf()->getString(), cpf_list->get(j)->getCpf()->getString()) == 0)
-                                genre_cpf_list->add(genreIndex->get(k));
-                        }
-                    }
+                    if(i == 0)
+                        left = results->get(i);
+                    else
+                        left = result;
+                    right = results->get(i + 1);
 
-                    this->heapsort(genre_cpf_list, genre_cpf_list->size());
-                    //Procura os top gêneros dessa lista de cpf/genero
-                    Vector<PrimaryIndex *> *top_genres = findTopGenres(genre_cpf_list);
+                    result = matchingCpf(left, right);
+                }
 
-                    for(int k = 0, j = 0; k < top_genres->size(); k++) {
-                        if(strcmp(top_genres->get(k)->getCpf()->getString(), genres->get(i)->getStr()->getString()) != 0) {
-                            printf("%d) %s\n", j+1, top_genres->get(k)->getCpf()->getString());
+                for(int j = 0; j < result->size(); j++)
+                    printf("%s\n", result->get(j)->getCpf()->getString());
 
-                            // Adiciona cada uma das listas resultantes em result
-                            results->add(top_genres);
-                            j++;
-                        }
+                Vector<Index *> *genre_cpf_list = new Vector<Index *>();
+
+                // Procura todos os gêneros a partir do cpf
+                for(int j = 0; j < result->size(); j++) {
+                    for(int k = 0; k < genreIndex->size(); k++) {
+                        if(strcmp(genreIndex->get(k)->getCpf()->getString(), result->get(j)->getCpf()->getString()) == 0)
+                            genre_cpf_list->add(genreIndex->get(k));
                     }
                 }
+
+                this->heapsort(genre_cpf_list, genre_cpf_list->size());
+                //Procura os top gêneros dessa lista de cpf/genero
+                Vector<PrimaryIndex *> *top_genres = findTopGenres(genre_cpf_list);
+
+                int flag = 0;
+                for(int k = 0, j = 0; k < top_genres->size() && j < 3; k++) {
+                    for(int i = 0; i < genres->size(); i++) {
+                        if(strcmp(top_genres->get(k)->getCpf()->getString(), genres->get(i)->getStr()->getString()) == 0)
+                            flag = 1;
+                    }
+
+                    if(flag == 0) {
+                        printf("%d) %s\n", j+1, top_genres->get(k)->getCpf()->getString());
+                        j++;
+                    }
+                    flag = 0;
+                }
+            }
 
                 // TODO fazer merge de todas as listas
                 //for(int i = 0; i < results->size(); i++) {
                 //    for(int j = 0; j < results->get(i)->size(); j++)
                 //}
-            }
-
             //if(option == 2) {
             //}
         }
