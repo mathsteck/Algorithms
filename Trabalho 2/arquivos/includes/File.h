@@ -126,10 +126,10 @@ class File {
 
         void setGenre(Vector<Client *> *clientes) {
             FILE *fp;
-            
+
             fp = fopen("genero.dat", "rb+");
             int correct, result;
-    
+
             if(fp == NULL) {
                 fp = fopen("genero.dat", "wb+");
             }

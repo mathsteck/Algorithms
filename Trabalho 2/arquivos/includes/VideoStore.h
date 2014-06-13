@@ -350,7 +350,6 @@ class VideoStore {
         Vector <Index *> * matchingCpf(Vector <Index *> *result1, Vector <Index *> *result2) {
             Vector <Index *> *result = new Vector <Index *> ();
             for(int i = 0, j = 0; i < result1->size() && j < result2->size();) {
-                printf("i = %d j = %d | %s | %s |\n", i, j, result1->get(i)->getCpf()->getString(), result2->get(j)->getCpf()->getString());
                 int cmp = strcmp(result1->get(i)->getCpf()->getString(), result2->get(j)->getCpf()->getString());
                 if (cmp < 0) {
                     i++;
@@ -389,51 +388,91 @@ class VideoStore {
 
             this->bubblesort(genres, genres->size(), 0);
 
+            // Filtra os CPFs que gostam de todos os generos listados
+            Vector <Index*> *cpf_list;
+
+            // Um vetor de vetores de index
+            Vector <Vector <Index *>* > *results = new Vector<Vector<Index *>* >();
+            // Para cada gênero inserido pelo usuário
+            for(int i = 0; i < genres->size(); i++) {
+                // Procura todos os CPFs que gostam deste genero
+                cpf_list = searchSecondaryIndexOrderly(1, genres->get(i)->getStr()->getString());
+                results->add(cpf_list);
+            }
+
+            // Matching
+            Vector<Index *> *result;
+
+            for(int i = 0; i + 1 < results->size(); i++) {
+                Vector<Index *> *left, *right;
+
+                if(i == 0)
+                    left = results->get(i);
+                else
+                    left = result;
+                right = results->get(i + 1);
+
+                result = matchingCpf(left, right);
+            }
+
+            if(results->size() == 1) {
+                result = results->get(0);
+            }
+
             if(option == 1) {
+                Vector<Index *> *genre_cpf_list = new Vector<Index *>();
 
-                Vector <Index*> *cpf_list;
+                // Procura todos os gêneros a partir do cpf
+                for(int j = 0; j < result->size(); j++) {
+                    for(int k = 0; k < genreIndex->size(); k++) {
+                        if(strcmp(genreIndex->get(k)->getCpf()->getString(), result->get(j)->getCpf()->getString()) == 0)
+                            genre_cpf_list->add(genreIndex->get(k));
+                    }
+                }
 
-                // Um vetor de vetores de primary index
-                Vector <Vector <PrimaryIndex *>* > *results = new Vector<Vector<PrimaryIndex *>* >();
-                // Para cada gênero inserido pelo usuário
-                for(int i = 0; i < genres->size(); i++) {
-                    printf("GENRE: %s\n", genres->get(i)->getStr()->getString());
+                this->heapsort(genre_cpf_list, genre_cpf_list->size());
+                //Procura os top gêneros dessa lista de cpf/genero
+                Vector<PrimaryIndex *> *top_genres = findTopGenres(genre_cpf_list);
 
-                    // Procura todos os CPFs que gostam deste genero
-                    cpf_list = searchSecondaryIndexOrderly(1, genres->get(i)->getStr()->getString());
-                    Vector<Index *> *genre_cpf_list = new Vector<Index *>();
-
-                    // Procura todos os gêneros a partir do cpf
-                    for(int j = 0; j < cpf_list->size(); j++) {
-                        for(int k = 0; k < genreIndex->size(); k++) {
-                            if(strcmp(genreIndex->get(k)->getCpf()->getString(), cpf_list->get(j)->getCpf()->getString()) == 0)
-                                genre_cpf_list->add(genreIndex->get(k));
-                        }
+                int flag = 0;
+                for(int k = 0, j = 0; k < top_genres->size() && j < 3; k++) {
+                    for(int i = 0; i < genres->size(); i++) {
+                        if(strcmp(top_genres->get(k)->getCpf()->getString(), genres->get(i)->getStr()->getString()) == 0)
+                            flag = 1;
                     }
 
-                    this->heapsort(genre_cpf_list, genre_cpf_list->size());
-                    //Procura os top gêneros dessa lista de cpf/genero
-                    Vector<PrimaryIndex *> *top_genres = findTopGenres(genre_cpf_list);
+                    if(flag == 0) {
+                        printf("%d) %s\n", j+1, top_genres->get(k)->getCpf()->getString());
+                        j++;
+                    }
+                    flag = 0;
+                }
+            }
 
-                    for(int k = 0, j = 0; k < top_genres->size(); k++) {
-                        if(strcmp(top_genres->get(k)->getCpf()->getString(), genres->get(i)->getStr()->getString()) != 0) {
-                            printf("%d) %s\n", j+1, top_genres->get(k)->getCpf()->getString());
+            if(option == 2) {
+                Vector <Client *> *clients = new Vector<Client *>();
+                File *file = new File();
+                Vector<Index *> *search_result = NULL;
 
-                            // Adiciona cada uma das listas resultantes em result
-                            results->add(top_genres);
-                            j++;
+                for(int i = 0; i < result->size(); i++) {
+                    search_result = binary(clientIndex, 0, clientIndex->size(), result->get(i)->getCpf()->getString());
+                    if(search_result != NULL) {
+                        for(int j = 0; j < search_result->size(); j++) {
+                            PrimaryIndex *pi = (PrimaryIndex *) search_result->get(j);
+                            Client *client = file->getClientByRRN(pi->getRRN());
+
+                            if(client != NULL) {
+                                clients->add(client);
+                            }
                         }
                     }
                 }
 
-                // TODO fazer merge de todas as listas
-                //for(int i = 0; i < results->size(); i++) {
-                //    for(int j = 0; j < results->get(i)->size(); j++)
-                //}
+                this->bubblesort(clients, clients->size(), 1);
+                for(int i = 0; i < clients->size() && i < 10; i++) {
+                    clients->get(i)->print();
+                }
             }
-
-            //if(option == 2) {
-            //}
         }
 
         // se 1 busca no genreIndex se 2 busca na occupationIndex
@@ -550,7 +589,7 @@ class VideoStore {
         Vector<Index *> *binary(Vector<Index *> *vector, int start, int end, char *key) {
             int central = start + ((end - start + 1) / 2);
 
-            int cmp = strcmp(key, vector->get(central)->get()->getString());
+            int cmp = strcmp(key, vector->get(central - 1)->get()->getString());
 
             if (cmp == 0) {
                 Vector<Index *> *result = new Vector<Index *>();
@@ -610,6 +649,24 @@ class VideoStore {
                     }
                     if(mode == 1) {
                         if(strcmp(vector->get(j)->getStr()->getString(), vector->get(j+1)->getStr()->getString()) < 0) {
+                            vector->swap(j, j+1);
+                        }
+                    }
+                }
+            }
+        }
+
+        // mode = 0 crescente mode = 1 decrescente
+        void bubblesort(Vector<Client *> *vector, int size, int mode) {
+            for(int i = size - 1; i >= 1; i--) {
+                for(int j = 0; j < i ; j++) {
+                    if(mode == 0) {
+                        if(atoi(vector->get(j)->getAge()->getString()) < atoi(vector->get(j+1)->getAge()->getString())) {
+                            vector->swap(j, j+1);
+                        }
+                    }
+                    if(mode == 1) {
+                        if(atoi(vector->get(j)->getAge()->getString()) > atoi(vector->get(j+1)->getAge()->getString())) {
                             vector->swap(j, j+1);
                         }
                     }
